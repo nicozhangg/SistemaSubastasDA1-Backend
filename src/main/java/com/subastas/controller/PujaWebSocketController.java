@@ -14,6 +14,12 @@ import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
 
+/**
+ * Controlador WebSocket (STOMP) para pujas en tiempo real.
+ * Los clientes envían pujas a /app/subastas/{id}/pujar y reciben
+ * confirmación o rechazo de forma privada en /user/queue/pujas,
+ * mientras el broadcast de la nueva mejor oferta va a /topic/subastas/{id}.
+ */
 @Slf4j
 @Controller
 @RequiredArgsConstructor

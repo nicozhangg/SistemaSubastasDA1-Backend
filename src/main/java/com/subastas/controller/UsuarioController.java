@@ -17,6 +17,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Endpoints del área personal del usuario: perfil, medios de pago,
+ * multas, compras ganadas y métricas de participación.
+ */
 @RestController
 @RequestMapping("/api/v1/usuarios")
 @RequiredArgsConstructor

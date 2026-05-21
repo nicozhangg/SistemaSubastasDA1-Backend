@@ -17,6 +17,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Filtro que intercepta cada request HTTP y, si el header Authorization contiene
+ * un Bearer token válido, establece el contexto de seguridad de Spring.
+ * Los errores de token se logean en DEBUG y no interrumpen la cadena de filtros,
+ * lo que permite que los endpoints públicos sigan funcionando sin JWT.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor

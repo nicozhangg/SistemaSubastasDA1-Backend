@@ -1,5 +1,6 @@
 package com.subastas.exception;
 
+/** Constantes de códigos de error devueltos en el campo "codigo" del ErrorResponse. */
 public final class ErrorCodes {
 
     private ErrorCodes() {}

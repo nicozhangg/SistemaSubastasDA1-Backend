@@ -10,6 +10,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Evento de subasta. La categoría restringe qué usuarios pueden acceder;
+ * la moneda aplica a todos los ítems del lote. El rematador es opcional
+ * y puede asignarse después de crear la subasta.
+ */
 @Entity
 @Table(name = "subastas")
 @Getter @Setter

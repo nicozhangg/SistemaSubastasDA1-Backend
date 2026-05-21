@@ -10,29 +10,45 @@ Tobías Hernández
 
 ---
 
-## App — React Native (Expo)
+## Backend — Spring Boot
 
-Cliente móvil multiplataforma con **React Native + Expo**, **TypeScript**, **React Navigation** y **Zustand**.
+API REST con **Spring Boot 3.3.4**, **Java 17**, **Spring Security + JWT**, **WebSocket (STOMP)** y base de datos **H2** en desarrollo / **MySQL** en producción.
+
+### Requisitos
+
+- Java 17+
+- Maven 3.6+
+
+### Correr en desarrollo
 
 ```bash
-npm install
-npm run web
+mvn spring-boot:run
 ```
 
-En redes corporativas, si Expo falla al validar dependencias:
+La API levanta en **http://localhost:8080**.  
+La documentación interactiva (Swagger UI) queda disponible en **http://localhost:8080/swagger-ui/index.html**.
 
-```powershell
-$env:EXPO_OFFLINE="1"
-npx expo start --web --offline
+### Compilar y ejecutar el JAR
+
+```bash
+mvn clean package
+java -jar target/subastas-api-0.0.1-SNAPSHOT.jar
 ```
 
-Luego abrir **http://localhost:8081**. En la pantalla de acceso, usar **Ingresar como invitado** para ver las pestañas principales.
+### Correr los tests
 
-| Carpeta / archivo | Descripción |
+```bash
+mvn test
+```
+
+| Carpeta | Descripción |
 |---|---|
-| `src/screens/` | Pantallas por módulo |
-| `src/navigation/` | Navegación (auth, tabs, modales) |
-| `src/services/` | Cliente API (stubs) |
+| `src/main/java/com/subastas/controller/` | Controladores REST |
+| `src/main/java/com/subastas/service/` | Lógica de negocio |
+| `src/main/java/com/subastas/model/` | Entidades, DTOs y enums |
+| `src/main/java/com/subastas/repository/` | Repositorios JPA |
+| `src/main/java/com/subastas/security/` | Filtro JWT y configuración de seguridad |
+| `src/main/java/com/subastas/config/` | Configuración de WebSocket, OpenAPI y datos iniciales |
 | `subastas-api.yaml` | Contrato OpenAPI del backend |
 
 ---

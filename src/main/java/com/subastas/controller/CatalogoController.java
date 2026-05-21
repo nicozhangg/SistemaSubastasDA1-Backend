@@ -14,6 +14,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Endpoints públicos del catálogo. No requieren JWT, pero el precio base
+ * de cada ítem solo se incluye en la respuesta cuando el token está presente.
+ */
 @RestController
 @RequiredArgsConstructor
 public class CatalogoController {
@@ -21,7 +25,7 @@ public class CatalogoController {
     private final SubastaService subastaService;
     private final ItemRepository itemRepository;
 
-    // Público: el precio_base se muestra solo a usuarios autenticados
+    /** precio_base se omite (null) para usuarios no autenticados (invitados). */
     @GetMapping("/api/v1/subastas/{id}/catalogo")
     public ResponseEntity<List<ItemResponse>> obtenerCatalogo(
             @PathVariable Long id,
@@ -35,7 +39,6 @@ public class CatalogoController {
                         .itemId(item.getId())
                         .numeroPieza(item.getNumeroPieza())
                         .descripcion(item.getDescripcion())
-                        // precio_base solo visible para usuarios registrados
                         .precioBase(autenticado ? item.getPrecioBase() : null)
                         .estado(item.getEstado())
                         .esObraArte(item.isEsObraArte())

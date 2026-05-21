@@ -26,6 +26,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
+/**
+ * Lógica de negocio de pujas. Garantiza consistencia de transacciones concurrentes
+ * mediante un lock por subasta, para que dos postores no puedan actualizar
+ * la mejor oferta de un mismo ítem al mismo tiempo.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -40,6 +45,7 @@ public class PujaService {
     private final WebSocketService webSocketService;
     private final UsuarioService usuarioService;
 
+    // Un lock por subasta para serializar pujas concurrentes sobre el mismo ítem
     private final Map<Long, ReentrantLock> locksPorSubasta = new ConcurrentHashMap<>();
 
     @Transactional
@@ -60,6 +66,8 @@ public class PujaService {
                     "Tenés multas pendientes. Debés pagarlas antes de pujar", HttpStatus.FORBIDDEN);
         }
 
+        // tryLock sin espera: si el lock está tomado, rechazamos la puja inmediatamente
+        // en lugar de encolar, porque el cliente debe esperar la confirmación de la puja en curso
         ReentrantLock lock = locksPorSubasta.computeIfAbsent(subastaId, id -> new ReentrantLock());
 
         if (!lock.tryLock()) {
@@ -78,6 +86,11 @@ public class PujaService {
         }
     }
 
+    /**
+     * Núcleo transaccional de la puja: valida rango, persiste la puja,
+     * actualiza la mejor oferta del ítem y dispara los mensajes WebSocket.
+     * Solo se ejecuta dentro del lock de la subasta correspondiente.
+     */
     private PujaResponse procesarPuja(Long subastaId, Subasta subasta, Usuario usuario, PujaRequest request) {
         Item item = itemRepository.findByIdWithLock(request.getItemId())
                 .orElseThrow(() -> new ResourceNotFoundException("Item", request.getItemId()));

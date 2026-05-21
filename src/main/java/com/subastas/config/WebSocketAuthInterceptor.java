@@ -14,6 +14,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+/**
+ * Interceptor STOMP que autentica la conexión WebSocket a partir del header
+ * Authorization enviado en el frame CONNECT. Sin este interceptor, el Principal
+ * sería nulo y no se podrían enviar mensajes privados por usuario.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor

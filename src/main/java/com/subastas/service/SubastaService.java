@@ -26,6 +26,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Lógica de negocio de subastas: listado con control de acceso por categoría,
+ * conexión/desconexión de postores y cálculo del estado de puja del ítem activo.
+ */
 @Service
 @RequiredArgsConstructor
 public class SubastaService {
@@ -36,6 +40,10 @@ public class SubastaService {
     private final ParticipacionRepository participacionRepository;
     private final UsuarioService usuarioService;
 
+    /**
+     * Filtra las subastas que el usuario puede ver según su categoría.
+     * Un usuario PLATA ve subastas COMUN, ESPECIAL y PLATA, pero no ORO ni PLATINO.
+     */
     public Page<SubastaResponse> listar(EstadoSubasta estado, Categoria categoria,
                                         Moneda moneda, int page, String email) {
         Usuario usuario = usuarioService.obtenerPorEmail(email);
@@ -62,6 +70,11 @@ public class SubastaService {
         return mapToResponse(subasta);
     }
 
+    /**
+     * Conecta al usuario a una subasta y registra su participación.
+     * Valida: subasta abierta, categoría suficiente, no estar ya conectado a otra
+     * subasta, y que el medio de pago seleccionado esté verificado.
+     */
     @Transactional
     public ConectarSubastaResponse conectar(Long subastaId, String email, ConectarSubastaRequest request) {
         Usuario usuario = usuarioService.obtenerPorEmail(email);
@@ -162,6 +175,11 @@ public class SubastaService {
         return itemRepository.findBySubasta(subasta);
     }
 
+    /**
+     * Construye el estado actual de puja de un ítem.
+     * Para categorías ORO y PLATINO los límites de puja son nulos (sin restricción).
+     * Para el resto: mínimo = mejorOferta + 1% precio base, máximo = mejorOferta + 20% precio base.
+     */
     EstadoPujaResponse buildEstadoPuja(Item item, Subasta subasta) {
         BigDecimal precioBase = item.getPrecioBase();
         BigDecimal mejorOferta = item.getMejorOferta() != null ? item.getMejorOferta() : precioBase;
@@ -212,6 +230,7 @@ public class SubastaService {
                 .build();
     }
 
+    /** Genera un alias anónimo del postor para no exponer su identidad en el historial público. */
     static String generarAlias(Usuario usuario) {
         if (usuario == null) return null;
         String prefijo = usuario.getNombre().substring(0, Math.min(3, usuario.getNombre().length()));

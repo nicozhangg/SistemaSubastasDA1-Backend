@@ -20,6 +20,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Gestión del ciclo de vida de una consignación: solicitud del usuario,
+ * revisión por la empresa, aceptación/rechazo de condiciones, y consulta
+ * de depósito y póliza de seguro asociados al bien.
+ */
 @Service
 @RequiredArgsConstructor
 public class ConsignacionService {
@@ -117,7 +122,7 @@ public class ConsignacionService {
 
         ConsignacionResponse response = mapToResponse(consignacion);
         response.setMensaje("Condiciones rechazadas. El bien será devuelto con cargo de retiro.");
-        response.setGastosEstimados(new BigDecimal("5000.00")); // Mock
+        response.setGastosEstimados(new BigDecimal("5000.00")); // valor fijo hasta integrar cotización real de retiro
         return response;
     }
 

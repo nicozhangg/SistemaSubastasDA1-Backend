@@ -8,6 +8,11 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+/**
+ * Configuración del broker WebSocket STOMP con SockJS como fallback.
+ * El interceptor de autenticación valida el JWT en el handshake CONNECT
+ * para que Principal esté disponible en los controladores de mensajes.
+ */
 @Configuration
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor
@@ -17,11 +22,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // Prefijo para mensajes del servidor al cliente
         registry.enableSimpleBroker("/topic", "/user/queue");
-        // Prefijo para mensajes del cliente al servidor
         registry.setApplicationDestinationPrefixes("/app");
-        // Para mensajes privados por usuario
         registry.setUserDestinationPrefix("/user");
     }
 

@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Postor del sistema. La categoría determina a qué subastas puede acceder
+ * y si tiene límites en los montos de puja (ORO y PLATINO no los tienen).
+ * El campo multasPendientes se mantiene sincronizado con la tabla de multas
+ * para evitar consultas adicionales en cada validación de puja.
+ */
 @Entity
 @Table(name = "usuarios")
 @Getter @Setter

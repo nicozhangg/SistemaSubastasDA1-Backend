@@ -14,6 +14,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.stream.Collectors;
 
+/**
+ * Manejador global de excepciones: traduce las excepciones del dominio
+ * y de Spring Security a respuestas HTTP con el formato ErrorResponse estándar.
+ */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {

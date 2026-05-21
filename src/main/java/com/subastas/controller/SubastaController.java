@@ -23,6 +23,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Endpoints de subastas: listado paginado, detalle, conexión/desconexión
+ * y gestión de pujas (REST). Las pujas también se pueden realizar vía WebSocket
+ * a través de {@link PujaWebSocketController}.
+ */
 @RestController
 @RequestMapping("/api/v1/subastas")
 @RequiredArgsConstructor
@@ -31,6 +36,7 @@ public class SubastaController {
     private final SubastaService subastaService;
     private final PujaService pujaService;
 
+    /** Devuelve solo las subastas accesibles según la categoría del usuario autenticado. */
     @GetMapping
     public ResponseEntity<Map<String, Object>> listar(
             @AuthenticationPrincipal UserDetails userDetails,

@@ -19,6 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Gestión del perfil de usuario: datos personales, medios de pago
+ * y validaciones de estado para operaciones críticas (pujar, conectarse).
+ */
 @Service
 @RequiredArgsConstructor
 public class UsuarioService {
@@ -67,7 +71,7 @@ public class UsuarioService {
 
         medioPago = medioPagoRepository.save(medioPago);
 
-        // Mock: la verificación de medios de pago siempre es exitosa
+        // En producción se integraría con un procesador de pagos; en dev siempre aprueba
         medioPago.setVerificado(true);
         medioPagoRepository.save(medioPago);
 

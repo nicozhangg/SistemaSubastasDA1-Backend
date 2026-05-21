@@ -7,6 +7,11 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Registro inmutable de una oferta realizada. El estado pasa de PENDIENTE a
+ * CONFIRMADA dentro de la misma transacción de procesarPuja, por lo que en
+ * la práctica no persisten pujas en estado PENDIENTE.
+ */
 @Entity
 @Table(name = "pujas")
 @Getter @Setter

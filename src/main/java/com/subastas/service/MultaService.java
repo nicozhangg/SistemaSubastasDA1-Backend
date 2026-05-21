@@ -17,6 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Gestión de multas por incumplimiento de pago.
+ * Un usuario con multas pendientes no puede realizar nuevas pujas hasta saldarlas.
+ */
 @Service
 @RequiredArgsConstructor
 public class MultaService {

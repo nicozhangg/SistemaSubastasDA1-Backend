@@ -14,6 +14,11 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.function.Function;
 
+/**
+ * Utilidades para generar y validar tokens JWT firmados con HMAC-SHA256.
+ * El secreto y el tiempo de expiración se inyectan desde application.properties
+ * (jwt.secret y jwt.expiration en milisegundos).
+ */
 @Slf4j
 @Component
 public class JwtUtil {

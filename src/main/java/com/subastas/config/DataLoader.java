@@ -13,6 +13,11 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Carga datos de prueba al inicio de la aplicación en todos los perfiles excepto prod.
+ * Popula dos usuarios (PLATA y ORO), sus medios de pago, un rematador,
+ * una subasta ABIERTA con dos ítems y una subasta PROXIMA en USD.
+ */
 @Slf4j
 @Component
 @Profile("!prod")

@@ -25,6 +25,17 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Lógica de autenticación y registro en dos pasos.
+ *
+ * <p>Flujo de registro:
+ * <ol>
+ *   <li>Paso 1 – se crea el usuario en estado PENDIENTE_VERIFICACION y se dispara
+ *       una verificación mock asíncrona que envía el token al email.</li>
+ *   <li>Paso 2 – el usuario presenta el token recibido junto con su contraseña;
+ *       la cuenta pasa a APROBADO y se devuelve un JWT listo para usar.</li>
+ * </ol>
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -45,6 +56,7 @@ public class AuthService {
                     "El email ya está registrado", HttpStatus.CONFLICT);
         }
 
+        // Token UUID de un solo uso con vigencia de 24 h para la activación por email
         String token = UUID.randomUUID().toString();
 
         Usuario usuario = Usuario.builder()

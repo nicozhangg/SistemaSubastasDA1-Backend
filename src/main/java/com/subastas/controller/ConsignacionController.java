@@ -15,6 +15,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+/**
+ * Endpoints de consignación: permite a un usuario solicitar que un bien propio
+ * sea incluido en subasta, aceptar o rechazar las condiciones propuestas por la
+ * empresa, y consultar la ubicación en depósito y la póliza de seguro.
+ */
 @RestController
 @RequestMapping("/api/v1/consignaciones")
 @RequiredArgsConstructor

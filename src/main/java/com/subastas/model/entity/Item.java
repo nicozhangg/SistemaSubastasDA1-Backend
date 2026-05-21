@@ -9,6 +9,11 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Pieza o bien incluido en una subasta.
+ * mejorOferta y mejorPostor se actualizan atómicamente dentro del lock de PujaService
+ * cada vez que se confirma una puja, y son la fuente de verdad del estado de puja.
+ */
 @Entity
 @Table(name = "items")
 @Getter @Setter
@@ -63,7 +68,6 @@ public class Item {
     @JoinColumn(name = "subasta_id")
     private Subasta subasta;
 
-    // Mejor oferta actual para este ítem
     @Column(name = "mejor_oferta", precision = 15, scale = 2)
     private BigDecimal mejorOferta;
 

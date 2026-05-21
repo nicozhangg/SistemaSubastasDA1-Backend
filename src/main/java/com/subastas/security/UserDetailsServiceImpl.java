@@ -13,6 +13,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * Implementación de UserDetailsService que carga el usuario desde la base de datos
+ * por email. Mapea el estado BLOQUEADO de la entidad a las flags de Spring Security
+ * (disabled/accountLocked) para que el AuthenticationManager rechace el login.
+ */
 @Service
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
