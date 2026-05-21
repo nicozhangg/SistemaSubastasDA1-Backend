@@ -49,7 +49,7 @@ public class PujaWebSocketController {
             pujaService.realizarPuja(subastaId, email, request);
 
         } catch (Exception e) {
-            log.warn("Error procesando puja WebSocket de {}: {}", email, e.getMessage());
+            log.error("Error procesando puja WebSocket de {}: {}", email, e.getMessage(), e);
             webSocketService.sendBidRejected(email, BidRejectedMessage.builder()
                     .motivo("ERROR_INTERNO")
                     .mensaje("No se pudo procesar la puja: " + e.getMessage())

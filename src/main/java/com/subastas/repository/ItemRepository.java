@@ -17,6 +17,10 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     List<Item> findBySubasta(Subasta subasta);
 
+    // Evita N+1 al renderizar el catálogo completo con imágenes y póliza
+    @Query("SELECT DISTINCT i FROM Item i LEFT JOIN FETCH i.imagenes LEFT JOIN FETCH i.poliza WHERE i.subasta = :subasta")
+    List<Item> findBySubastaWithDetails(@Param("subasta") Subasta subasta);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM Item i WHERE i.id = :id")
     Optional<Item> findByIdWithLock(@Param("id") Long id);

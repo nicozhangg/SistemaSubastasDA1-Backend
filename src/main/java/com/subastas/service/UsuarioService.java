@@ -8,6 +8,7 @@ import com.subastas.model.dto.response.MedioPagoResponse;
 import com.subastas.model.dto.response.UsuarioResponse;
 import com.subastas.model.entity.MedioPago;
 import com.subastas.model.entity.Usuario;
+import com.subastas.repository.CompraRepository;
 import com.subastas.repository.MedioPagoRepository;
 import com.subastas.repository.ParticipacionRepository;
 import com.subastas.repository.UsuarioRepository;
@@ -16,7 +17,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +34,7 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final MedioPagoRepository medioPagoRepository;
     private final ParticipacionRepository participacionRepository;
+    private final CompraRepository compraRepository;
 
     public Usuario obtenerPorEmail(String email) {
         return usuarioRepository.findByEmail(email)
@@ -96,6 +101,37 @@ public class UsuarioService {
         }
 
         medioPagoRepository.delete(medioPago);
+    }
+
+    public List<Map<String, Object>> listarParticipaciones(String email) {
+        Usuario usuario = obtenerPorEmail(email);
+        return participacionRepository.findByUsuarioOrderByFechaConexionDesc(usuario).stream()
+                .map(p -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("subastaId", p.getSubasta().getId());
+                    m.put("subastaTitulo", p.getSubasta().getTitulo());
+                    m.put("fechaConexion", p.getFechaConexion());
+                    m.put("fechaDesconexion", p.getFechaDesconexion());
+                    m.put("conectado", p.isConectado());
+                    return m;
+                })
+                .collect(Collectors.toList());
+    }
+
+    public Map<String, Object> obtenerMetricas(String email) {
+        Usuario usuario = obtenerPorEmail(email);
+        var participaciones = participacionRepository.findByUsuarioOrderByFechaConexionDesc(usuario);
+        var compras = compraRepository.findByUsuarioOrderByIdDesc(usuario);
+        BigDecimal totalPagado = compras.stream()
+                .map(c -> c.getTotal() != null ? c.getTotal() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("total_subastas_asistidas", participaciones.size());
+        m.put("total_ganadas", compras.size());
+        m.put("total_pagado", totalPagado);
+        m.put("multas_pendientes", usuario.getMultasPendientes());
+        return m;
     }
 
     private UsuarioResponse mapToResponse(Usuario u) {

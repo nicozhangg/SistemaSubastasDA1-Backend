@@ -14,8 +14,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface SubastaRepository extends JpaRepository<Subasta, Long> {
 
-    // Trae subastas cuya categoría <= categoría del usuario (usando ordinal)
-    @Query("SELECT s FROM Subasta s WHERE " +
+    // Fetch join en rematador (ManyToOne) evita N+1 al mapear la lista paginada
+    @Query("SELECT s FROM Subasta s LEFT JOIN FETCH s.rematador WHERE " +
            "(:estado IS NULL OR s.estado = :estado) AND " +
            "(:categoria IS NULL OR s.categoria = :categoria) AND " +
            "(:moneda IS NULL OR s.moneda = :moneda) AND " +

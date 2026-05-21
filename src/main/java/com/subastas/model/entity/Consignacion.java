@@ -36,6 +36,9 @@ public class Consignacion {
     @Column(name = "motivo_rechazo", columnDefinition = "TEXT")
     private String motivoRechazo;
 
+    @Column(name = "precio_sugerido", precision = 15, scale = 2)
+    private BigDecimal precioSugerido;
+
     @Column(name = "valor_base", precision = 15, scale = 2)
     private BigDecimal valorBase;
 

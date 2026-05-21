@@ -14,8 +14,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.subastas.util.FileUtil;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -29,6 +32,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ConsignacionService {
 
+    private static final BigDecimal GASTOS_RETIRO = new BigDecimal("5000.00");
+
     private final ConsignacionRepository consignacionRepository;
     private final MedioPagoRepository medioPagoRepository;
 
@@ -41,7 +46,7 @@ public class ConsignacionService {
     @Transactional
     public ConsignacionResponse crear(Usuario usuario, String descripcion, String datosAdicionales,
                                       boolean aceptaPertenencia, Long cuentaDestinoId,
-                                      List<MultipartFile> fotos) {
+                                      BigDecimal precioSugerido, List<MultipartFile> fotos) {
         if (!aceptaPertenencia) {
             throw new BusinessException(ErrorCodes.PERTENENCIA_NO_DECLARADA,
                     "Debés declarar que el bien te pertenece");
@@ -52,6 +57,18 @@ public class ConsignacionService {
                     "Debés subir al menos 6 fotos del bien");
         }
 
+        for (MultipartFile foto : fotos) {
+            String contentType = foto.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                throw new BusinessException(ErrorCodes.ESTADO_INVALIDO,
+                        "Solo se permiten imágenes (JPEG, PNG, GIF, WebP)");
+            }
+            if (foto.getSize() > 5_242_880L) {
+                throw new BusinessException(ErrorCodes.ESTADO_INVALIDO,
+                        "Cada foto no debe superar 5 MB");
+            }
+        }
+
         MedioPago cuentaDestino = medioPagoRepository.findByIdAndUsuario(cuentaDestinoId, usuario)
                 .orElseThrow(() -> new ResourceNotFoundException("Medio de pago", cuentaDestinoId));
 
@@ -60,18 +77,19 @@ public class ConsignacionService {
                 .datosAdicionales(datosAdicionales)
                 .aceptaPertenencia(true)
                 .estado(EstadoConsignacion.PENDIENTE_REVISION)
+                .precioSugerido(precioSugerido)
                 .cuentaDestino(cuentaDestino)
                 .usuario(usuario)
                 .build();
 
         consignacion = consignacionRepository.save(consignacion);
 
-        // Guardar fotos
+        // Guardar fotos con nombre UUID para evitar path traversal
         List<FotoConsignacion> fotosEntidad = new ArrayList<>();
         for (int i = 0; i < fotos.size(); i++) {
             MultipartFile foto = fotos.get(i);
             FotoConsignacion fotoConsignacion = FotoConsignacion.builder()
-                    .url("uploads/consignaciones/" + consignacion.getId() + "/" + foto.getOriginalFilename())
+                    .url("uploads/consignaciones/" + consignacion.getId() + "/" + FileUtil.uuidFilename(foto))
                     .orden(i + 1)
                     .consignacion(consignacion)
                     .build();
@@ -122,7 +140,7 @@ public class ConsignacionService {
 
         ConsignacionResponse response = mapToResponse(consignacion);
         response.setMensaje("Condiciones rechazadas. El bien será devuelto con cargo de retiro.");
-        response.setGastosEstimados(new BigDecimal("5000.00")); // valor fijo hasta integrar cotización real de retiro
+        response.setGastosEstimados(GASTOS_RETIRO);
         return response;
     }
 
@@ -136,16 +154,16 @@ public class ConsignacionService {
             throw new ResourceNotFoundException("El bien aún no fue asignado a un depósito");
         }
 
-        Map<String, Object> coordenadas = new java.util.LinkedHashMap<>();
+        Map<String, Object> coordenadas = new LinkedHashMap<>();
         coordenadas.put("lat", deposito.getLatitud());
         coordenadas.put("lng", deposito.getLongitud());
 
-        Map<String, Object> depositoMap = new java.util.LinkedHashMap<>();
+        Map<String, Object> depositoMap = new LinkedHashMap<>();
         depositoMap.put("nombre", deposito.getNombre());
         depositoMap.put("direccion", deposito.getDireccion());
         depositoMap.put("coordenadas", coordenadas);
 
-        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>();
         result.put("deposito", depositoMap);
         result.put("fecha_ingreso", deposito.getFechaIngreso());
         result.put("estado_fisico", deposito.getEstadoFisico());
@@ -162,11 +180,11 @@ public class ConsignacionService {
             throw new ResourceNotFoundException("No hay póliza asociada a esta consignación");
         }
 
-        Map<String, Object> aseguradora = new java.util.LinkedHashMap<>();
+        Map<String, Object> aseguradora = new LinkedHashMap<>();
         aseguradora.put("nombre", poliza.getAseguradoraNombre());
         aseguradora.put("contacto", poliza.getAseguradoraContacto());
 
-        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>();
         result.put("poliza_id", poliza.getId());
         result.put("aseguradora", aseguradora);
         result.put("valor_asegurado", poliza.getValorAsegurado());
@@ -185,9 +203,11 @@ public class ConsignacionService {
         return ConsignacionResponse.builder()
                 .consignacionId(c.getId())
                 .descripcion(c.getDescripcion())
+                .datosAdicionales(c.getDatosAdicionales())
                 .estado(c.getEstado())
                 .aceptaPertenencia(c.isAceptaPertenencia())
                 .motivoRechazo(c.getMotivoRechazo())
+                .precioSugerido(c.getPrecioSugerido())
                 .valorBase(c.getValorBase())
                 .comisiones(c.getComisiones())
                 .subastaId(c.getSubastaAsignada() != null ? c.getSubastaAsignada().getId() : null)

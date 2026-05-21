@@ -10,6 +10,7 @@ import com.subastas.model.entity.Usuario;
 import com.subastas.model.enums.EstadoMulta;
 import com.subastas.repository.MedioPagoRepository;
 import com.subastas.repository.MultaRepository;
+import com.subastas.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ public class MultaService {
 
     private final MultaRepository multaRepository;
     private final MedioPagoRepository medioPagoRepository;
+    private final UsuarioRepository usuarioRepository;
     private final UsuarioService usuarioService;
 
     public List<MultaResponse> listarMultas(String email) {
@@ -56,6 +58,7 @@ public class MultaService {
 
         long pendientes = multaRepository.countByUsuarioAndEstado(usuario, EstadoMulta.PENDIENTE);
         usuario.setMultasPendientes((int) pendientes);
+        usuarioRepository.save(usuario);
 
         MultaResponse response = mapToResponse(multa);
         response.setPuedeParticiparNuevamente(pendientes == 0);

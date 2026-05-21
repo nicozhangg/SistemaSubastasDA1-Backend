@@ -51,6 +51,9 @@ public class Usuario {
     @Column(nullable = false)
     private EstadoUsuario estado;
 
+    @Column(name = "numero_dni", unique = true)
+    private String numeroDni;
+
     @Column(name = "foto_dni_frente")
     private String fotoDniFrente;
 

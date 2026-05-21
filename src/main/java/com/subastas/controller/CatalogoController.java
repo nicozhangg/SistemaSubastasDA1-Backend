@@ -3,14 +3,18 @@ package com.subastas.controller;
 import com.subastas.exception.ResourceNotFoundException;
 import com.subastas.model.dto.response.ItemResponse;
 import com.subastas.model.entity.Item;
+import com.subastas.model.entity.Poliza;
+import com.subastas.model.entity.Subasta;
 import com.subastas.repository.ItemRepository;
 import com.subastas.service.SubastaService;
+import com.subastas.util.PujaRangeUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,31 +39,43 @@ public class CatalogoController {
         List<Item> items = subastaService.obtenerCatalogo(id);
 
         List<ItemResponse> response = items.stream()
-                .map(item -> ItemResponse.builder()
-                        .itemId(item.getId())
-                        .numeroPieza(item.getNumeroPieza())
-                        .descripcion(item.getDescripcion())
-                        .precioBase(autenticado ? item.getPrecioBase() : null)
-                        .estado(item.getEstado())
-                        .esObraArte(item.isEsObraArte())
-                        .imagenes(item.getImagenes() != null
-                                ? item.getImagenes().stream()
-                                    .map(img -> ItemResponse.ImagenInfo.builder()
-                                            .imagenId(img.getId())
-                                            .url(img.getUrl())
-                                            .orden(img.getOrden())
-                                            .descripcion(img.getDescripcion())
-                                            .build())
-                                    .collect(Collectors.toList())
-                                : List.of())
-                        .build())
+                .map(item -> {
+                    ItemResponse.SubastaInfo subastaInfo = buildSubastaInfo(item.getSubasta());
+                    return ItemResponse.builder()
+                            .itemId(item.getId())
+                            .numeroPieza(item.getNumeroPieza())
+                            .descripcion(item.getDescripcion())
+                            .precioBase(autenticado ? item.getPrecioBase() : null)
+                            .estado(item.getEstado())
+                            .esObraArte(item.isEsObraArte())
+                            .ubicacionFisica(item.getUbicacionFisica())
+                            .mejorOferta(autenticado ? item.getMejorOferta() : null)
+                            .subasta(subastaInfo)
+                            .pujaMinima(autenticado ? calcularPujaMinima(item) : null)
+                            .pujaMaxima(autenticado ? calcularPujaMaxima(item) : null)
+                            .imagenes(item.getImagenes() != null
+                                    ? item.getImagenes().stream()
+                                        .map(img -> ItemResponse.ImagenInfo.builder()
+                                                .imagenId(img.getId())
+                                                .url(img.getUrl())
+                                                .orden(img.getOrden())
+                                                .descripcion(img.getDescripcion())
+                                                .build())
+                                        .collect(Collectors.toList())
+                                    : List.of())
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/api/v1/items/{itemId}")
-    public ResponseEntity<ItemResponse> obtenerItem(@PathVariable Long itemId) {
+    public ResponseEntity<ItemResponse> obtenerItem(
+            @PathVariable Long itemId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        boolean autenticado = userDetails != null;
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item", itemId));
 
@@ -67,7 +83,7 @@ public class CatalogoController {
                 .itemId(item.getId())
                 .numeroPieza(item.getNumeroPieza())
                 .descripcion(item.getDescripcion())
-                .precioBase(item.getPrecioBase())
+                .precioBase(autenticado ? item.getPrecioBase() : null)
                 .estado(item.getEstado())
                 .duenioActual(item.getDuenioActual())
                 .esObraArte(item.isEsObraArte())
@@ -75,6 +91,12 @@ public class CatalogoController {
                 .fechaCreacion(item.getFechaCreacion())
                 .historia(item.getHistoria())
                 .componentes(item.getComponentes())
+                .ubicacionFisica(item.getUbicacionFisica())
+                .mejorOferta(autenticado ? item.getMejorOferta() : null)
+                .pujaMinima(autenticado ? calcularPujaMinima(item) : null)
+                .pujaMaxima(autenticado ? calcularPujaMaxima(item) : null)
+                .subasta(buildSubastaInfo(item.getSubasta()))
+                .poliza(buildPolizaInfo(item.getPoliza()))
                 .imagenes(item.getImagenes() != null
                         ? item.getImagenes().stream()
                             .map(img -> ItemResponse.ImagenInfo.builder()
@@ -88,6 +110,35 @@ public class CatalogoController {
                 .build();
 
         return ResponseEntity.ok(response);
+    }
+
+    private ItemResponse.SubastaInfo buildSubastaInfo(Subasta subasta) {
+        if (subasta == null) return null;
+        return ItemResponse.SubastaInfo.builder()
+                .id(subasta.getId())
+                .titulo(subasta.getTitulo())
+                .ubicacion(subasta.getUbicacion())
+                .build();
+    }
+
+    private ItemResponse.PolizaInfo buildPolizaInfo(Poliza poliza) {
+        if (poliza == null) return null;
+        return ItemResponse.PolizaInfo.builder()
+                .polizaId(poliza.getId())
+                .aseguradoraNombre(poliza.getAseguradoraNombre())
+                .aseguradoraContacto(poliza.getAseguradoraContacto())
+                .valorAsegurado(poliza.getValorAsegurado())
+                .vigenciaDesde(poliza.getVigenciaDesde())
+                .vigenciaHasta(poliza.getVigenciaHasta())
+                .build();
+    }
+
+    private BigDecimal calcularPujaMinima(Item item) {
+        return PujaRangeUtil.calcularMinima(item, item.getSubasta());
+    }
+
+    private BigDecimal calcularPujaMaxima(Item item) {
+        return PujaRangeUtil.calcularMaxima(item, item.getSubasta());
     }
 
     @GetMapping("/api/v1/items/{itemId}/imagenes")

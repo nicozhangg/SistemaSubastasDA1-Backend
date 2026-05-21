@@ -13,9 +13,11 @@ import java.util.List;
 public class ConsignacionResponse {
     private Long consignacionId;
     private String descripcion;
+    private String datosAdicionales;
     private EstadoConsignacion estado;
     private boolean aceptaPertenencia;
     private String motivoRechazo;
+    private BigDecimal precioSugerido;
     private BigDecimal valorBase;
     private BigDecimal comisiones;
     private Long subastaId;

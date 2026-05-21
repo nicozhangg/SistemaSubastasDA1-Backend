@@ -64,6 +64,13 @@ public class Item {
     @Builder.Default
     private List<ImagenItem> imagenes = new ArrayList<>();
 
+    @Column(name = "ubicacion_fisica")
+    private String ubicacionFisica;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "poliza_id")
+    private Poliza poliza;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subasta_id")
     private Subasta subasta;

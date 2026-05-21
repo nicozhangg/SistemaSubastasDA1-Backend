@@ -8,6 +8,7 @@ import com.subastas.model.dto.response.ConectarSubastaResponse;
 import com.subastas.model.dto.response.EstadoPujaResponse;
 import com.subastas.model.dto.response.SubastaResponse;
 import com.subastas.model.entity.*;
+import com.subastas.util.PujaRangeUtil;
 import com.subastas.model.enums.Categoria;
 import com.subastas.model.enums.EstadoItem;
 import com.subastas.model.enums.EstadoSubasta;
@@ -20,7 +21,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -83,7 +83,7 @@ public class SubastaService {
 
         if (subasta.getEstado() != EstadoSubasta.ABIERTA) {
             throw new BusinessException(ErrorCodes.SUBASTA_NO_ABIERTA,
-                    "La subasta no está abierta", HttpStatus.NOT_FOUND);
+                    "La subasta no está abierta", HttpStatus.BAD_REQUEST);
         }
 
         if (!usuario.getCategoria().puedeAcceder(subasta.getCategoria())) {
@@ -93,7 +93,7 @@ public class SubastaService {
 
         if (participacionRepository.existsByUsuarioAndConectadoTrue(usuario)) {
             throw new BusinessException(ErrorCodes.USUARIO_YA_CONECTADO,
-                    "Ya estás conectado a una subasta", HttpStatus.BAD_REQUEST);
+                    "Ya estás conectado a una subasta", HttpStatus.CONFLICT);
         }
 
         MedioPago medioPago = medioPagoRepository.findByIdAndUsuario(request.getMedioPagoId(), usuario)
@@ -134,7 +134,7 @@ public class SubastaService {
                 .findByUsuarioAndSubasta(usuario, subasta)
                 .filter(Participacion::isConectado)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.USUARIO_NO_CONECTADO,
-                        "No estás conectado a esta subasta", HttpStatus.BAD_REQUEST));
+                        "No estás conectado a esta subasta", HttpStatus.FORBIDDEN));
 
         participacion.setConectado(false);
         participacion.setFechaDesconexion(LocalDateTime.now());
@@ -172,7 +172,7 @@ public class SubastaService {
     public List<Item> obtenerCatalogo(Long subastaId) {
         Subasta subasta = subastaRepository.findById(subastaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Subasta", subastaId));
-        return itemRepository.findBySubasta(subasta);
+        return itemRepository.findBySubastaWithDetails(subasta);
     }
 
     /**
@@ -181,25 +181,14 @@ public class SubastaService {
      * Para el resto: mínimo = mejorOferta + 1% precio base, máximo = mejorOferta + 20% precio base.
      */
     EstadoPujaResponse buildEstadoPuja(Item item, Subasta subasta) {
-        BigDecimal precioBase = item.getPrecioBase();
-        BigDecimal mejorOferta = item.getMejorOferta() != null ? item.getMejorOferta() : precioBase;
-
-        BigDecimal pujaMinima = null;
-        BigDecimal pujaMaxima = null;
-
-        if (!subasta.getCategoria().sinLimitesPuja()) {
-            pujaMinima = mejorOferta.add(precioBase.multiply(new BigDecimal("0.01")));
-            pujaMaxima = mejorOferta.add(precioBase.multiply(new BigDecimal("0.20")));
-        }
-
         return EstadoPujaResponse.builder()
                 .itemId(item.getId())
                 .descripcion(item.getDescripcion())
-                .precioBase(precioBase)
+                .precioBase(item.getPrecioBase())
                 .mejorOferta(item.getMejorOferta())
                 .mejorPostorAlias(generarAlias(item.getMejorPostor()))
-                .pujaMinima(pujaMinima)
-                .pujaMaxima(pujaMaxima)
+                .pujaMinima(PujaRangeUtil.calcularMinima(item, subasta))
+                .pujaMaxima(PujaRangeUtil.calcularMaxima(item, subasta))
                 .moneda(subasta.getMoneda())
                 .estadoItem(item.getEstado())
                 .build();
@@ -233,7 +222,8 @@ public class SubastaService {
     /** Genera un alias anónimo del postor para no exponer su identidad en el historial público. */
     static String generarAlias(Usuario usuario) {
         if (usuario == null) return null;
-        String prefijo = usuario.getNombre().substring(0, Math.min(3, usuario.getNombre().length()));
-        return "postor_" + prefijo + "***";
+        String nombre = usuario.getNombre();
+        if (nombre == null || nombre.isBlank()) return "postor_***";
+        return "postor_" + nombre.substring(0, Math.min(3, nombre.length())) + "***";
     }
 }

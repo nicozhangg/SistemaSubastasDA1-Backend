@@ -12,6 +12,7 @@ import com.subastas.model.entity.*;
 import com.subastas.model.enums.EstadoMulta;
 import com.subastas.model.enums.EstadoPuja;
 import com.subastas.repository.*;
+import com.subastas.util.PujaRangeUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -98,21 +99,22 @@ public class PujaService {
         MedioPago medioPago = medioPagoRepository.findByIdAndUsuario(request.getMedioPagoId(), usuario)
                 .orElseThrow(() -> new ResourceNotFoundException("Medio de pago", request.getMedioPagoId()));
 
-        BigDecimal precioBase = item.getPrecioBase();
-        BigDecimal mejorOferta = item.getMejorOferta() != null ? item.getMejorOferta() : precioBase;
+        if (subasta.getMoneda() != medioPago.getMoneda()) {
+            throw new BusinessException(ErrorCodes.ESTADO_INVALIDO,
+                    "La moneda del medio de pago no coincide con la moneda de la subasta");
+        }
 
-        if (!subasta.getCategoria().sinLimitesPuja()) {
-            BigDecimal pujaMinima = mejorOferta.add(precioBase.multiply(new BigDecimal("0.01")));
-            BigDecimal pujaMaxima = mejorOferta.add(precioBase.multiply(new BigDecimal("0.20")));
+        BigDecimal pujaMinima = PujaRangeUtil.calcularMinima(item, subasta);
+        BigDecimal pujaMaxima = PujaRangeUtil.calcularMaxima(item, subasta);
 
-            if (request.getMonto().compareTo(pujaMinima) < 0 || request.getMonto().compareTo(pujaMaxima) > 0) {
-                String mensaje = String.format("El monto debe estar entre %s y %s", pujaMinima, pujaMaxima);
-                webSocketService.sendBidRejected(usuario.getEmail(), BidRejectedMessage.builder()
-                        .motivo(ErrorCodes.MONTO_FUERA_DE_RANGO)
-                        .mensaje(mensaje)
-                        .build());
-                throw new BusinessException(ErrorCodes.MONTO_FUERA_DE_RANGO, mensaje);
-            }
+        if (pujaMinima != null && pujaMaxima != null &&
+                (request.getMonto().compareTo(pujaMinima) < 0 || request.getMonto().compareTo(pujaMaxima) > 0)) {
+            String mensaje = String.format("El monto debe estar entre %s y %s", pujaMinima, pujaMaxima);
+            webSocketService.sendBidRejected(usuario.getEmail(), BidRejectedMessage.builder()
+                    .motivo(ErrorCodes.MONTO_FUERA_DE_RANGO)
+                    .mensaje(mensaje)
+                    .build());
+            throw new BusinessException(ErrorCodes.MONTO_FUERA_DE_RANGO, mensaje);
         }
 
         Puja puja = Puja.builder()
@@ -132,13 +134,9 @@ public class PujaService {
         itemRepository.save(item);
 
         BigDecimal nuevaMejorOferta = request.getMonto();
-        BigDecimal pujaMinimaBroadcast = null;
-        BigDecimal pujaMaximaBroadcast = null;
-
-        if (!subasta.getCategoria().sinLimitesPuja()) {
-            pujaMinimaBroadcast = nuevaMejorOferta.add(precioBase.multiply(new BigDecimal("0.01")));
-            pujaMaximaBroadcast = nuevaMejorOferta.add(precioBase.multiply(new BigDecimal("0.20")));
-        }
+        // Recalcular rango sobre la nueva mejor oferta ya guardada en item
+        BigDecimal pujaMinimaBroadcast = PujaRangeUtil.calcularMinima(item, subasta);
+        BigDecimal pujaMaximaBroadcast = PujaRangeUtil.calcularMaxima(item, subasta);
 
         String alias = SubastaService.generarAlias(usuario);
 

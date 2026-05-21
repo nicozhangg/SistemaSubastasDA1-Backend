@@ -17,6 +17,9 @@ public class RegistroPaso1Request {
     @Email(message = "El email no tiene formato válido")
     private String email;
 
+    @NotBlank(message = "El número de DNI es obligatorio")
+    private String numeroDni;
+
     @NotBlank(message = "El domicilio legal es obligatorio")
     private String domicilioLegal;
 

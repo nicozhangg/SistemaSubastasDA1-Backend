@@ -70,10 +70,10 @@ class PujaWebSocketIntegrationTest {
         conectarASubasta(jwtMaria, 1L, 2L);
 
         // Colas separadas por canal para evitar mezclar mensajes de topic y cola privada
-        BlockingQueue<Map> juanPrivate  = new LinkedBlockingQueue<>();
-        BlockingQueue<Map> juanTopic    = new LinkedBlockingQueue<>();
-        BlockingQueue<Map> mariaPrivate = new LinkedBlockingQueue<>();
-        BlockingQueue<Map> mariaTopic   = new LinkedBlockingQueue<>();
+        BlockingQueue<Map<String, Object>> juanPrivate  = new LinkedBlockingQueue<>();
+        BlockingQueue<Map<String, Object>> juanTopic    = new LinkedBlockingQueue<>();
+        BlockingQueue<Map<String, Object>> mariaPrivate = new LinkedBlockingQueue<>();
+        BlockingQueue<Map<String, Object>> mariaTopic   = new LinkedBlockingQueue<>();
 
         WebSocketStompClient clientJuan  = crearStompClient();
         WebSocketStompClient clientMaria = crearStompClient();
@@ -96,7 +96,7 @@ class PujaWebSocketIntegrationTest {
         // ---- Juan puja 55000 (válido: base=50000, mín=50500, máx=60000) ----
         enviarPuja(sessionJuan, 1L, 1L, "55000.00", 1L);
 
-        Map confirmedJuan = juanPrivate.poll(5, TimeUnit.SECONDS);
+        Map<String, Object> confirmedJuan = juanPrivate.poll(5, TimeUnit.SECONDS);
         assertThat(confirmedJuan)
                 .as("Juan debe recibir BID_CONFIRMED")
                 .isNotNull()
@@ -105,7 +105,7 @@ class PujaWebSocketIntegrationTest {
                 .as("Monto confirmado debe ser 55000")
                 .contains("55000");
 
-        Map updatedMaria = mariaTopic.poll(5, TimeUnit.SECONDS);
+        Map<String, Object> updatedMaria = mariaTopic.poll(5, TimeUnit.SECONDS);
         assertThat(updatedMaria)
                 .as("María debe recibir BID_UPDATED por el topic")
                 .isNotNull()
@@ -120,13 +120,13 @@ class PujaWebSocketIntegrationTest {
         // ---- María puja 60000 (válido: después de 55000, mín=55500, máx=65000) ----
         enviarPuja(sessionMaria, 1L, 1L, "60000.00", 2L);
 
-        Map confirmedMaria = mariaPrivate.poll(5, TimeUnit.SECONDS);
+        Map<String, Object> confirmedMaria = mariaPrivate.poll(5, TimeUnit.SECONDS);
         assertThat(confirmedMaria)
                 .as("María debe recibir BID_CONFIRMED")
                 .isNotNull()
                 .containsEntry("tipo", "BID_CONFIRMED");
 
-        Map updatedJuan = juanTopic.poll(5, TimeUnit.SECONDS);
+        Map<String, Object> updatedJuan = juanTopic.poll(5, TimeUnit.SECONDS);
         assertThat(updatedJuan)
                 .as("Juan debe recibir BID_UPDATED con la oferta de María")
                 .isNotNull()
@@ -137,7 +137,7 @@ class PujaWebSocketIntegrationTest {
         // ---- Juan puja 50000 (inválido: por debajo del mínimo 60500) ----
         enviarPuja(sessionJuan, 1L, 1L, "50000.00", 1L);
 
-        Map rechazado = juanPrivate.poll(5, TimeUnit.SECONDS);
+        Map<String, Object> rechazado = juanPrivate.poll(5, TimeUnit.SECONDS);
         assertThat(rechazado)
                 .as("Juan debe recibir BID_REJECTED por monto inválido")
                 .isNotNull()
@@ -158,7 +158,7 @@ class PujaWebSocketIntegrationTest {
     @Test
     @Order(2)
     void puja_sin_autenticacion_es_ignorada() throws Exception {
-        BlockingQueue<Map> mensajes = new LinkedBlockingQueue<>();
+        BlockingQueue<Map<String, Object>> mensajes = new LinkedBlockingQueue<>();
 
         // Conectar SIN JWT
         WebSocketStompClient client = crearStompClient();
@@ -172,7 +172,7 @@ class PujaWebSocketIntegrationTest {
         enviarPuja(session, 1L, 1L, "55000.00", 1L);
 
         // El servidor ignora la puja (Principal nulo) — nada debe llegar
-        Map msg = mensajes.poll(2, TimeUnit.SECONDS);
+        Map<String, Object> msg = mensajes.poll(2, TimeUnit.SECONDS);
         assertThat(msg)
                 .as("No debe llegar ningún mensaje a una sesión no autenticada")
                 .isNull();
@@ -237,13 +237,14 @@ class PujaWebSocketIntegrationTest {
         session.send(h, req);
     }
 
-    private StompFrameHandler buildHandler(BlockingQueue<Map> queue) {
+    @SuppressWarnings("unchecked")
+    private StompFrameHandler buildHandler(BlockingQueue<Map<String, Object>> queue) {
         return new StompFrameHandler() {
             @Override
             public Type getPayloadType(StompHeaders headers) { return Map.class; }
             @Override
             public void handleFrame(StompHeaders headers, Object payload) {
-                queue.offer((Map) payload);
+                queue.offer((Map<String, Object>) payload);
             }
         };
     }

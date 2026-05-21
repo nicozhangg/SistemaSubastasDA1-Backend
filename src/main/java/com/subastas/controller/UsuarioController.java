@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+
 /**
  * Endpoints del área personal del usuario: perfil, medios de pago,
  * multas, compras ganadas y métricas de participación.
@@ -80,23 +81,13 @@ public class UsuarioController {
 
     @GetMapping("/participaciones")
     public ResponseEntity<List<Map<String, Object>>> listarParticipaciones(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(required = false) String resultado,
-            @RequestParam(required = false) String desde,
-            @RequestParam(required = false) String hasta) {
-        // TODO: implementar filtros completos
-        return ResponseEntity.ok(List.of());
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(usuarioService.listarParticipaciones(userDetails.getUsername()));
     }
 
     @GetMapping("/metricas")
     public ResponseEntity<Map<String, Object>> obtenerMetricas(
             @AuthenticationPrincipal UserDetails userDetails) {
-        // TODO: implementar métricas agregadas
-        return ResponseEntity.ok(Map.of(
-                "total_subastas_asistidas", 0,
-                "total_ganadas", 0,
-                "total_ofertado", 0,
-                "total_pagado", 0
-        ));
+        return ResponseEntity.ok(usuarioService.obtenerMetricas(userDetails.getUsername()));
     }
 }

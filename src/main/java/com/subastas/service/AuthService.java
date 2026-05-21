@@ -20,6 +20,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.subastas.util.FileUtil;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -56,6 +57,11 @@ public class AuthService {
                     "El email ya está registrado", HttpStatus.CONFLICT);
         }
 
+        if (usuarioRepository.existsByNumeroDni(request.getNumeroDni())) {
+            throw new BusinessException(ErrorCodes.EMAIL_DUPLICADO,
+                    "El DNI ya está registrado", HttpStatus.CONFLICT);
+        }
+
         // Token UUID de un solo uso con vigencia de 24 h para la activación por email
         String token = UUID.randomUUID().toString();
 
@@ -63,10 +69,11 @@ public class AuthService {
                 .nombre(request.getNombre())
                 .apellido(request.getApellido())
                 .email(request.getEmail())
+                .numeroDni(request.getNumeroDni())
                 .domicilioLegal(request.getDomicilioLegal())
                 .paisOrigen(request.getPaisOrigen())
-                .fotoDniFrente(fotoDniFrente != null ? "uploads/dni/" + fotoDniFrente.getOriginalFilename() : null)
-                .fotoDniDorso(fotoDniDorso != null ? "uploads/dni/" + fotoDniDorso.getOriginalFilename() : null)
+                .fotoDniFrente(fotoDniFrente != null ? "uploads/dni/" + FileUtil.uuidFilename(fotoDniFrente) : null)
+                .fotoDniDorso(fotoDniDorso != null ? "uploads/dni/" + FileUtil.uuidFilename(fotoDniDorso) : null)
                 .estado(EstadoUsuario.PENDIENTE_VERIFICACION)
                 .categoria(Categoria.COMUN)
                 .tokenEmail(token)
@@ -108,7 +115,7 @@ public class AuthService {
         usuario.setEstado(EstadoUsuario.APROBADO);
         usuario.setTokenEmail(null);
         usuario.setTokenExpiracion(null);
-        usuarioRepository.save(usuario);
+        usuario = usuarioRepository.save(usuario);
 
         String jwt = jwtUtil.generateToken(usuario.getEmail());
 

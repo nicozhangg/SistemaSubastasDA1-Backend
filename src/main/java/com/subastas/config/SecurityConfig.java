@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/registro/paso2").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/subastas/*/catalogo").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/items/**").permitAll()
                 // H2 console y WebSocket (dev)
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
