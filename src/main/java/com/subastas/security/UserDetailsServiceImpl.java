@@ -29,15 +29,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + email));
 
-        boolean enabled = usuario.getEstado() != EstadoUsuario.BLOQUEADO;
-        boolean accountNonLocked = usuario.getEstado() != EstadoUsuario.BLOQUEADO;
+        boolean activo = usuario.getEstado() != EstadoUsuario.BLOQUEADO;
 
         return User.builder()
                 .username(usuario.getEmail())
                 .password(usuario.getPassword() != null ? usuario.getPassword() : "")
                 .authorities(List.of(new SimpleGrantedAuthority("ROLE_USER")))
-                .disabled(!enabled)
-                .accountLocked(!accountNonLocked)
+                .disabled(!activo)
+                .accountLocked(!activo)
                 .build();
     }
 }

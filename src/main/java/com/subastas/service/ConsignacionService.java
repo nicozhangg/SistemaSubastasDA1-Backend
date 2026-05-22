@@ -105,13 +105,7 @@ public class ConsignacionService {
 
     @Transactional
     public ConsignacionResponse aceptarCondiciones(Long consignacionId, Usuario usuario) {
-        Consignacion consignacion = consignacionRepository.findByIdAndUsuario(consignacionId, usuario)
-                .orElseThrow(() -> new ResourceNotFoundException("Consignación", consignacionId));
-
-        if (consignacion.getEstado() != EstadoConsignacion.ACEPTADA) {
-            throw new BusinessException(ErrorCodes.ESTADO_INVALIDO,
-                    "La consignación no está en estado de aceptación de condiciones");
-        }
+        Consignacion consignacion = obtenerConsignacionParaDecision(consignacionId, usuario);
 
         consignacion.setEstado(EstadoConsignacion.EN_SUBASTA);
         consignacion = consignacionRepository.save(consignacion);
@@ -127,13 +121,7 @@ public class ConsignacionService {
 
     @Transactional
     public ConsignacionResponse rechazarCondiciones(Long consignacionId, Usuario usuario) {
-        Consignacion consignacion = consignacionRepository.findByIdAndUsuario(consignacionId, usuario)
-                .orElseThrow(() -> new ResourceNotFoundException("Consignación", consignacionId));
-
-        if (consignacion.getEstado() != EstadoConsignacion.ACEPTADA) {
-            throw new BusinessException(ErrorCodes.ESTADO_INVALIDO,
-                    "La consignación no está en estado de aceptación de condiciones");
-        }
+        Consignacion consignacion = obtenerConsignacionParaDecision(consignacionId, usuario);
 
         consignacion.setEstado(EstadoConsignacion.DEVUELTA);
         consignacion = consignacionRepository.save(consignacion);
@@ -193,6 +181,16 @@ public class ConsignacionService {
         result.put("vigencia_hasta", poliza.getVigenciaHasta());
         result.put("bienes_cubiertos", poliza.getBienesCubiertos());
         return result;
+    }
+
+    private Consignacion obtenerConsignacionParaDecision(Long consignacionId, Usuario usuario) {
+        Consignacion consignacion = consignacionRepository.findByIdAndUsuario(consignacionId, usuario)
+                .orElseThrow(() -> new ResourceNotFoundException("Consignación", consignacionId));
+        if (consignacion.getEstado() != EstadoConsignacion.ACEPTADA) {
+            throw new BusinessException(ErrorCodes.ESTADO_INVALIDO,
+                    "La consignación no está en estado de aceptación de condiciones");
+        }
+        return consignacion;
     }
 
     private ConsignacionResponse mapToResponse(Consignacion c) {

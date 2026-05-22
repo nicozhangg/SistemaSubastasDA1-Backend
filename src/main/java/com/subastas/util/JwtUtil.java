@@ -34,12 +34,7 @@ public class JwtUtil {
     }
 
     public String generateToken(UserDetails userDetails) {
-        return Jwts.builder()
-                .subject(userDetails.getUsername())
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSigningKey())
-                .compact();
+        return generateToken(userDetails.getUsername());
     }
 
     public String generateToken(String email) {

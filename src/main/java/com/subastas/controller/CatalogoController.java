@@ -53,16 +53,7 @@ public class CatalogoController {
                             .subasta(subastaInfo)
                             .pujaMinima(autenticado ? calcularPujaMinima(item) : null)
                             .pujaMaxima(autenticado ? calcularPujaMaxima(item) : null)
-                            .imagenes(item.getImagenes() != null
-                                    ? item.getImagenes().stream()
-                                        .map(img -> ItemResponse.ImagenInfo.builder()
-                                                .imagenId(img.getId())
-                                                .url(img.getUrl())
-                                                .orden(img.getOrden())
-                                                .descripcion(img.getDescripcion())
-                                                .build())
-                                        .collect(Collectors.toList())
-                                    : List.of())
+                            .imagenes(buildImagenes(item))
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -97,16 +88,7 @@ public class CatalogoController {
                 .pujaMaxima(autenticado ? calcularPujaMaxima(item) : null)
                 .subasta(buildSubastaInfo(item.getSubasta()))
                 .poliza(buildPolizaInfo(item.getPoliza()))
-                .imagenes(item.getImagenes() != null
-                        ? item.getImagenes().stream()
-                            .map(img -> ItemResponse.ImagenInfo.builder()
-                                    .imagenId(img.getId())
-                                    .url(img.getUrl())
-                                    .orden(img.getOrden())
-                                    .descripcion(img.getDescripcion())
-                                    .build())
-                            .collect(Collectors.toList())
-                        : List.of())
+                .imagenes(buildImagenes(item))
                 .build();
 
         return ResponseEntity.ok(response);
@@ -145,18 +127,18 @@ public class CatalogoController {
     public ResponseEntity<List<ItemResponse.ImagenInfo>> obtenerImagenes(@PathVariable Long itemId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item", itemId));
+        return ResponseEntity.ok(buildImagenes(item));
+    }
 
-        List<ItemResponse.ImagenInfo> imagenes = item.getImagenes() != null
-                ? item.getImagenes().stream()
-                    .map(img -> ItemResponse.ImagenInfo.builder()
-                            .imagenId(img.getId())
-                            .url(img.getUrl())
-                            .orden(img.getOrden())
-                            .descripcion(img.getDescripcion())
-                            .build())
-                    .collect(Collectors.toList())
-                : List.of();
-
-        return ResponseEntity.ok(imagenes);
+    private List<ItemResponse.ImagenInfo> buildImagenes(Item item) {
+        if (item.getImagenes() == null) return List.of();
+        return item.getImagenes().stream()
+                .map(img -> ItemResponse.ImagenInfo.builder()
+                        .imagenId(img.getId())
+                        .url(img.getUrl())
+                        .orden(img.getOrden())
+                        .descripcion(img.getDescripcion())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

@@ -61,7 +61,7 @@ public class UsuarioService {
                 .tipo(request.getTipo())
                 .alias(request.getAlias())
                 .moneda(request.getMoneda())
-                .verificado(false)
+                .verificado(true)
                 .montoLimite(request.getMontoCheque())
                 .numeroCuenta(request.getNumeroCuenta())
                 .banco(request.getBanco())
@@ -74,11 +74,8 @@ public class UsuarioService {
                 .usuario(usuario)
                 .build();
 
-        medioPago = medioPagoRepository.save(medioPago);
-
         // En producción se integraría con un procesador de pagos; en dev siempre aprueba
-        medioPago.setVerificado(true);
-        medioPagoRepository.save(medioPago);
+        medioPago = medioPagoRepository.save(medioPago);
 
         MedioPagoResponse response = mapMedioPagoToResponse(medioPago);
         response.setMensaje("Medio de pago agregado y verificado exitosamente");
