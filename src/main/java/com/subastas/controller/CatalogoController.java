@@ -67,7 +67,7 @@ public class CatalogoController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         boolean autenticado = userDetails != null;
-        Item item = itemRepository.findById(itemId)
+        Item item = itemRepository.findByIdWithDetails(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item", itemId));
 
         ItemResponse response = ItemResponse.builder()
@@ -125,7 +125,7 @@ public class CatalogoController {
 
     @GetMapping("/api/v1/items/{itemId}/imagenes")
     public ResponseEntity<List<ItemResponse.ImagenInfo>> obtenerImagenes(@PathVariable Long itemId) {
-        Item item = itemRepository.findById(itemId)
+        Item item = itemRepository.findByIdWithDetails(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item", itemId));
         return ResponseEntity.ok(buildImagenes(item));
     }

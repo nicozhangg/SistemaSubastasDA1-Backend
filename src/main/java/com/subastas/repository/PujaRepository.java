@@ -5,6 +5,8 @@ import com.subastas.model.entity.Puja;
 import com.subastas.model.entity.Subasta;
 import com.subastas.model.entity.Usuario;
 import com.subastas.model.enums.EstadoPuja;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,6 +20,10 @@ public interface PujaRepository extends JpaRepository<Puja, Long> {
     // Fetch join en usuario evita N+1 al generar alias en el historial público
     @Query("SELECT p FROM Puja p LEFT JOIN FETCH p.usuario WHERE p.subasta = :subasta ORDER BY p.timestamp DESC")
     List<Puja> findBySubastaOrderByTimestampDesc(@Param("subasta") Subasta subasta);
+
+    @Query(value = "SELECT p FROM Puja p LEFT JOIN FETCH p.usuario WHERE p.subasta = :subasta ORDER BY p.timestamp DESC",
+           countQuery = "SELECT COUNT(p) FROM Puja p WHERE p.subasta = :subasta")
+    Page<Puja> findBySubastaOrderByTimestampDesc(@Param("subasta") Subasta subasta, Pageable pageable);
 
     @Query("SELECT p FROM Puja p LEFT JOIN FETCH p.usuario WHERE p.subasta = :subasta AND p.item = :item ORDER BY p.timestamp DESC")
     List<Puja> findBySubastaAndItemOrderByTimestampDesc(@Param("subasta") Subasta subasta, @Param("item") Item item);

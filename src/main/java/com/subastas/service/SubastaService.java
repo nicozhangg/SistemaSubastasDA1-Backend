@@ -10,6 +10,7 @@ import com.subastas.model.dto.response.SubastaResponse;
 import com.subastas.model.dto.websocket.AuctionClosedMessage;
 import com.subastas.model.entity.*;
 import com.subastas.model.enums.EstadoPago;
+import com.subastas.util.AliasUtil;
 import com.subastas.util.PujaRangeUtil;
 import com.subastas.model.enums.Categoria;
 import com.subastas.model.enums.EstadoItem;
@@ -45,6 +46,7 @@ public class SubastaService {
     private final CompraRepository compraRepository;
     private final EmailService emailService;
     private final WebSocketService webSocketService;
+    private final PujaService pujaService;
     private final UsuarioService usuarioService;
 
     /**
@@ -122,7 +124,11 @@ public class SubastaService {
         participacionRepository.save(participacion);
 
         List<Item> items = itemRepository.findBySubasta(subasta);
-        EstadoPujaResponse itemActual = items.isEmpty() ? null : buildEstadoPuja(items.get(0), subasta);
+        EstadoPujaResponse itemActual = items.stream()
+                .filter(i -> i.getEstado() == EstadoItem.EN_SUBASTA)
+                .findFirst()
+                .map(i -> buildEstadoPuja(i, subasta))
+                .orElse(null);
 
         return ConectarSubastaResponse.builder()
                 .sesionId(participacion.getId())
@@ -193,7 +199,7 @@ public class SubastaService {
                 .descripcion(item.getDescripcion())
                 .precioBase(item.getPrecioBase())
                 .mejorOferta(item.getMejorOferta())
-                .mejorPostorAlias(generarAlias(item.getMejorPostor()))
+                .mejorPostorAlias(AliasUtil.generarAlias(item.getMejorPostor()))
                 .pujaMinima(PujaRangeUtil.calcularMinima(item, subasta))
                 .pujaMaxima(PujaRangeUtil.calcularMaxima(item, subasta))
                 .moneda(subasta.getMoneda())
@@ -238,7 +244,7 @@ public class SubastaService {
                 webSocketService.broadcastAuctionClosed(subasta.getId(),
                         AuctionClosedMessage.builder()
                                 .itemId(item.getId())
-                                .ganadorAlias(generarAlias(item.getMejorPostor()))
+                                .ganadorAlias(AliasUtil.generarAlias(item.getMejorPostor()))
                                 .montoFinal(item.getMejorOferta())
                                 .build());
             } else {
@@ -262,6 +268,8 @@ public class SubastaService {
             p.setFechaDesconexion(ahora);
         }
         participacionRepository.saveAll(conectados);
+
+        pujaService.liberarLock(subasta.getId());
     }
 
     private SubastaResponse mapToResponse(Subasta s) {
@@ -285,15 +293,8 @@ public class SubastaService {
                 .estado(s.getEstado())
                 .ubicacion(s.getUbicacion())
                 .rematador(rematadorInfo)
-                .totalItems(s.getItems() != null ? s.getItems().size() : 0)
+                .totalItems(s.getTotalItems())
                 .build();
     }
 
-    /** Genera un alias anónimo del postor para no exponer su identidad en el historial público. */
-    static String generarAlias(Usuario usuario) {
-        if (usuario == null) return null;
-        String nombre = usuario.getNombre();
-        if (nombre == null || nombre.isBlank()) return "postor_***";
-        return "postor_" + nombre.substring(0, Math.min(3, nombre.length())) + "***";
-    }
 }

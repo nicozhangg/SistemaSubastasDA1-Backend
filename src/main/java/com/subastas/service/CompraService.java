@@ -1,7 +1,5 @@
 package com.subastas.service;
 
-import com.subastas.exception.BusinessException;
-import com.subastas.exception.ErrorCodes;
 import com.subastas.exception.ResourceNotFoundException;
 import com.subastas.model.dto.response.CompraResponse;
 import com.subastas.model.entity.Compra;
@@ -21,13 +19,8 @@ public class CompraService {
     public CompraResponse obtenerCompra(Long compraId, String email) {
         Usuario usuario = usuarioService.obtenerPorEmail(email);
 
-        Compra compra = compraRepository.findById(compraId)
+        Compra compra = compraRepository.findByIdAndUsuario(compraId, usuario)
                 .orElseThrow(() -> new ResourceNotFoundException("Compra", compraId));
-
-        if (!compra.getUsuario().getId().equals(usuario.getId())) {
-            throw new BusinessException(ErrorCodes.ACCESO_DENEGADO,
-                    "No podés acceder a esta compra", HttpStatus.FORBIDDEN);
-        }
 
         return CompraResponse.builder()
                 .compraId(compra.getId())

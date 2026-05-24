@@ -1,5 +1,6 @@
 package com.subastas.service;
 
+import com.subastas.event.RegistroCompletadoEvent;
 import com.subastas.exception.BusinessException;
 import com.subastas.exception.ErrorCodes;
 import com.subastas.model.dto.request.LoginRequest;
@@ -14,6 +15,7 @@ import com.subastas.repository.UsuarioRepository;
 import com.subastas.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -50,7 +52,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
-    private final MockVerificacionService mockVerificacionService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public RegistroResponse registroPaso1(RegistroPaso1Request request,
@@ -89,8 +91,8 @@ public class AuthService {
 
         usuario = usuarioRepository.save(usuario);
 
-        // Verificación mock asíncrona (3 segundos delay, siempre exitosa) + envío de email
-        mockVerificacionService.verificarYEnviarEmail(usuario.getId(), token);
+        // El evento se despacha solo después del commit para evitar enviar email si la tx hace rollback
+        eventPublisher.publishEvent(new RegistroCompletadoEvent(this, usuario.getId(), token));
 
         return RegistroResponse.builder()
                 .usuarioId(usuario.getId())

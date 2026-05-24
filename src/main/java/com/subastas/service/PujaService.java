@@ -1,20 +1,21 @@
 package com.subastas.service;
 
+import com.subastas.event.PujaConfirmadaEvent;
 import com.subastas.exception.BusinessException;
 import com.subastas.exception.ErrorCodes;
 import com.subastas.exception.ResourceNotFoundException;
 import com.subastas.model.dto.request.PujaRequest;
 import com.subastas.model.dto.response.PujaResponse;
 import com.subastas.model.dto.websocket.BidConfirmedMessage;
-import com.subastas.model.dto.websocket.BidRejectedMessage;
 import com.subastas.model.dto.websocket.BidUpdatedMessage;
 import com.subastas.model.entity.*;
-import com.subastas.model.enums.EstadoMulta;
 import com.subastas.model.enums.EstadoPuja;
 import com.subastas.repository.*;
+import com.subastas.util.AliasUtil;
 import com.subastas.util.PujaRangeUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
 
 /**
  * Lógica de negocio de pujas. Garantiza consistencia de transacciones concurrentes
@@ -43,8 +45,8 @@ public class PujaService {
     private final MedioPagoRepository medioPagoRepository;
     private final ParticipacionRepository participacionRepository;
     private final MultaRepository multaRepository;
-    private final WebSocketService webSocketService;
     private final UsuarioService usuarioService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // Un lock por subasta para serializar pujas concurrentes sobre el mismo ítem
     private final Map<Long, ReentrantLock> locksPorSubasta = new ConcurrentHashMap<>();
@@ -61,8 +63,7 @@ public class PujaService {
                 .orElseThrow(() -> new BusinessException(ErrorCodes.USUARIO_NO_CONECTADO,
                         "No estás conectado a esta subasta", HttpStatus.FORBIDDEN));
 
-        long multasPendientes = multaRepository.countByUsuarioAndEstado(usuario, EstadoMulta.PENDIENTE);
-        if (multasPendientes > 0) {
+        if (usuario.getMultasPendientes() > 0) {
             throw new BusinessException(ErrorCodes.MULTA_PENDIENTE,
                     "Tenés multas pendientes. Debés pagarlas antes de pujar", HttpStatus.FORBIDDEN);
         }
@@ -72,10 +73,6 @@ public class PujaService {
         ReentrantLock lock = locksPorSubasta.computeIfAbsent(subastaId, id -> new ReentrantLock());
 
         if (!lock.tryLock()) {
-            webSocketService.sendBidRejected(email, BidRejectedMessage.builder()
-                    .motivo(ErrorCodes.PUJA_EN_PROCESO)
-                    .mensaje("Hay una puja en proceso. Por favor esperá la confirmación.")
-                    .build());
             throw new BusinessException(ErrorCodes.PUJA_EN_PROCESO,
                     "Hay una puja en proceso", HttpStatus.CONFLICT);
         }
@@ -109,12 +106,8 @@ public class PujaService {
 
         if (pujaMinima != null && pujaMaxima != null &&
                 (request.getMonto().compareTo(pujaMinima) < 0 || request.getMonto().compareTo(pujaMaxima) > 0)) {
-            String mensaje = String.format("El monto debe estar entre %s y %s", pujaMinima, pujaMaxima);
-            webSocketService.sendBidRejected(usuario.getEmail(), BidRejectedMessage.builder()
-                    .motivo(ErrorCodes.MONTO_FUERA_DE_RANGO)
-                    .mensaje(mensaje)
-                    .build());
-            throw new BusinessException(ErrorCodes.MONTO_FUERA_DE_RANGO, mensaje);
+            throw new BusinessException(ErrorCodes.MONTO_FUERA_DE_RANGO,
+                    String.format("El monto debe estar entre %s y %s", pujaMinima, pujaMaxima));
         }
 
         Puja puja = Puja.builder()
@@ -138,20 +131,22 @@ public class PujaService {
         BigDecimal pujaMinimaBroadcast = PujaRangeUtil.calcularMinima(item, subasta);
         BigDecimal pujaMaximaBroadcast = PujaRangeUtil.calcularMaxima(item, subasta);
 
-        String alias = SubastaService.generarAlias(usuario);
+        String alias = AliasUtil.generarAlias(usuario);
 
-        webSocketService.broadcastBidUpdated(subastaId, BidUpdatedMessage.builder()
-                .itemId(item.getId())
-                .nuevaMejorOferta(nuevaMejorOferta)
-                .mejorPostorAlias(alias)
-                .pujaMinima(pujaMinimaBroadcast)
-                .pujaMaxima(pujaMaximaBroadcast)
-                .build());
-
-        webSocketService.sendBidConfirmed(usuario.getEmail(), BidConfirmedMessage.builder()
-                .pujaId(puja.getId())
-                .monto(puja.getMonto())
-                .build());
+        // Los mensajes WebSocket se envían solo después del commit para evitar
+        // que los clientes vean una puja que luego hace rollback en la BD
+        eventPublisher.publishEvent(new PujaConfirmadaEvent(this, subastaId, usuario.getEmail(),
+                BidUpdatedMessage.builder()
+                        .itemId(item.getId())
+                        .nuevaMejorOferta(nuevaMejorOferta)
+                        .mejorPostorAlias(alias)
+                        .pujaMinima(pujaMinimaBroadcast)
+                        .pujaMaxima(pujaMaximaBroadcast)
+                        .build(),
+                BidConfirmedMessage.builder()
+                        .pujaId(puja.getId())
+                        .monto(puja.getMonto())
+                        .build()));
 
         return PujaResponse.builder()
                 .pujaId(puja.getId())
@@ -163,7 +158,12 @@ public class PujaService {
                 .build();
     }
 
-    public List<PujaResponse> obtenerHistorial(Long subastaId, Long itemId, Boolean soloPropias, String email) {
+    public void liberarLock(Long subastaId) {
+        locksPorSubasta.remove(subastaId);
+    }
+
+    public List<PujaResponse> obtenerHistorial(Long subastaId, Long itemId, Boolean soloPropias, String email,
+                                               int page, int size) {
         Subasta subasta = subastaRepository.findById(subastaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Subasta", subastaId));
 
@@ -182,14 +182,14 @@ public class PujaService {
                     .orElseThrow(() -> new ResourceNotFoundException("Item", itemId));
             pujas = pujaRepository.findBySubastaAndItemOrderByTimestampDesc(subasta, item);
         } else {
-            pujas = pujaRepository.findBySubastaOrderByTimestampDesc(subasta);
+            pujas = pujaRepository.findBySubastaOrderByTimestampDesc(subasta, PageRequest.of(page, size)).getContent();
         }
 
         return pujas.stream()
                 .map(p -> PujaResponse.builder()
                         .pujaId(p.getId())
                         .monto(p.getMonto())
-                        .postorAlias(SubastaService.generarAlias(p.getUsuario()))
+                        .postorAlias(AliasUtil.generarAlias(p.getUsuario()))
                         .timestamp(p.getTimestamp())
                         .estado(p.getEstado())
                         .build())

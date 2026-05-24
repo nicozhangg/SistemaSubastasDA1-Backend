@@ -4,6 +4,8 @@ import com.subastas.exception.BusinessException;
 import com.subastas.exception.ErrorCodes;
 import com.subastas.exception.ResourceNotFoundException;
 import com.subastas.model.dto.response.ConsignacionResponse;
+import com.subastas.model.dto.response.PolizaResponse;
+import com.subastas.model.dto.response.UbicacionResponse;
 import com.subastas.model.entity.*;
 import com.subastas.model.enums.EstadoConsignacion;
 import com.subastas.repository.ConsignacionRepository;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.subastas.util.FileUtil;
+import org.apache.tika.Tika;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -22,9 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -37,6 +38,7 @@ import java.util.stream.Collectors;
 public class ConsignacionService {
 
     private static final BigDecimal GASTOS_RETIRO = new BigDecimal("5000.00");
+    private static final Tika TIKA = new Tika();
 
     private final ConsignacionRepository consignacionRepository;
     private final MedioPagoRepository medioPagoRepository;
@@ -62,10 +64,17 @@ public class ConsignacionService {
         }
 
         for (MultipartFile foto : fotos) {
-            String contentType = foto.getContentType();
-            if (contentType == null || !contentType.startsWith("image/")) {
+            try {
+                String tipoDetectado = TIKA.detect(foto.getBytes());
+                if (!tipoDetectado.startsWith("image/")) {
+                    throw new BusinessException(ErrorCodes.ESTADO_INVALIDO,
+                            "Solo se permiten imágenes (JPEG, PNG, GIF, WebP)");
+                }
+            } catch (BusinessException e) {
+                throw e;
+            } catch (IOException e) {
                 throw new BusinessException(ErrorCodes.ESTADO_INVALIDO,
-                        "Solo se permiten imágenes (JPEG, PNG, GIF, WebP)");
+                        "No se pudo leer el archivo");
             }
             if (foto.getSize() > 5_242_880L) {
                 throw new BusinessException(ErrorCodes.ESTADO_INVALIDO,
@@ -145,7 +154,7 @@ public class ConsignacionService {
         return response;
     }
 
-    public Object obtenerUbicacion(Long consignacionId, Usuario usuario) {
+    public UbicacionResponse obtenerUbicacion(Long consignacionId, Usuario usuario) {
         Consignacion consignacion = consignacionRepository.findByIdAndUsuario(consignacionId, usuario)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.ACCESO_DENEGADO,
                         "No autorizado", HttpStatus.FORBIDDEN));
@@ -155,23 +164,17 @@ public class ConsignacionService {
             throw new ResourceNotFoundException("El bien aún no fue asignado a un depósito");
         }
 
-        Map<String, Object> coordenadas = new LinkedHashMap<>();
-        coordenadas.put("lat", deposito.getLatitud());
-        coordenadas.put("lng", deposito.getLongitud());
-
-        Map<String, Object> depositoMap = new LinkedHashMap<>();
-        depositoMap.put("nombre", deposito.getNombre());
-        depositoMap.put("direccion", deposito.getDireccion());
-        depositoMap.put("coordenadas", coordenadas);
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("deposito", depositoMap);
-        result.put("fecha_ingreso", deposito.getFechaIngreso());
-        result.put("estado_fisico", deposito.getEstadoFisico());
-        return result;
+        return UbicacionResponse.builder()
+                .depositoNombre(deposito.getNombre())
+                .depositoDireccion(deposito.getDireccion())
+                .lat(deposito.getLatitud())
+                .lng(deposito.getLongitud())
+                .fechaIngreso(deposito.getFechaIngreso())
+                .estadoFisico(deposito.getEstadoFisico())
+                .build();
     }
 
-    public Object obtenerPoliza(Long consignacionId, Usuario usuario) {
+    public PolizaResponse obtenerPoliza(Long consignacionId, Usuario usuario) {
         Consignacion consignacion = consignacionRepository.findByIdAndUsuario(consignacionId, usuario)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.ACCESO_DENEGADO,
                         "No autorizado", HttpStatus.FORBIDDEN));
@@ -181,19 +184,16 @@ public class ConsignacionService {
             throw new ResourceNotFoundException("No hay póliza asociada a esta consignación");
         }
 
-        Map<String, Object> aseguradora = new LinkedHashMap<>();
-        aseguradora.put("nombre", poliza.getAseguradoraNombre());
-        aseguradora.put("contacto", poliza.getAseguradoraContacto());
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("poliza_id", poliza.getId());
-        result.put("aseguradora", aseguradora);
-        result.put("valor_asegurado", poliza.getValorAsegurado());
-        result.put("prima", poliza.getPrima());
-        result.put("vigencia_desde", poliza.getVigenciaDesde());
-        result.put("vigencia_hasta", poliza.getVigenciaHasta());
-        result.put("bienes_cubiertos", poliza.getBienesCubiertos());
-        return result;
+        return PolizaResponse.builder()
+                .polizaId(poliza.getId())
+                .aseguradoraNombre(poliza.getAseguradoraNombre())
+                .aseguradoraContacto(poliza.getAseguradoraContacto())
+                .valorAsegurado(poliza.getValorAsegurado())
+                .prima(poliza.getPrima())
+                .vigenciaDesde(poliza.getVigenciaDesde())
+                .vigenciaHasta(poliza.getVigenciaHasta())
+                .bienesCubiertos(poliza.getBienesCubiertos())
+                .build();
     }
 
     private Consignacion obtenerConsignacionParaDecision(Long consignacionId, Usuario usuario) {

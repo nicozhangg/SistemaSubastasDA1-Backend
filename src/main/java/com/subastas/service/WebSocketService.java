@@ -1,5 +1,6 @@
 package com.subastas.service;
 
+import com.subastas.event.PujaConfirmadaEvent;
 import com.subastas.model.dto.websocket.AuctionClosedMessage;
 import com.subastas.model.dto.websocket.BidConfirmedMessage;
 import com.subastas.model.dto.websocket.BidRejectedMessage;
@@ -8,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * Abstracción sobre SimpMessagingTemplate para el envío de mensajes WebSocket.
@@ -40,6 +43,12 @@ public class WebSocketService {
     public void sendBidRejected(String emailPostor, BidRejectedMessage message) {
         log.debug("Enviando BID_REJECTED a {}", emailPostor);
         messagingTemplate.convertAndSendToUser(emailPostor, "/queue/pujas", message);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onPujaConfirmada(PujaConfirmadaEvent event) {
+        broadcastBidUpdated(event.getSubastaId(), event.getBidUpdated());
+        sendBidConfirmed(event.getEmailPostor(), event.getBidConfirmed());
     }
 
     public void broadcastAuctionClosed(Long subastaId, AuctionClosedMessage message) {

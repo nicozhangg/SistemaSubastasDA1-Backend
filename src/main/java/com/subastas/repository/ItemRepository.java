@@ -21,6 +21,9 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     @Query("SELECT DISTINCT i FROM Item i LEFT JOIN FETCH i.imagenes LEFT JOIN FETCH i.poliza WHERE i.subasta = :subasta")
     List<Item> findBySubastaWithDetails(@Param("subasta") Subasta subasta);
 
+    @Query("SELECT i FROM Item i LEFT JOIN FETCH i.imagenes LEFT JOIN FETCH i.poliza LEFT JOIN FETCH i.subasta WHERE i.id = :id")
+    Optional<Item> findByIdWithDetails(@Param("id") Long id);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM Item i WHERE i.id = :id")
     Optional<Item> findByIdWithLock(@Param("id") Long id);

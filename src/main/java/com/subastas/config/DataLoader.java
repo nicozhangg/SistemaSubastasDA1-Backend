@@ -252,7 +252,7 @@ public class DataLoader implements CommandLineRunner {
         consignacionRepository.save(consignacion2);
 
         log.info("Datos de prueba cargados: 2 usuarios, 2 medios de pago, 2 subastas, 2 ítems, 2 consignaciones");
-        log.info("Login de prueba: juan@test.com / password123 (PLATA)");
-        log.info("Login de prueba: maria@test.com / password123 (ORO)");
+        log.debug("Login de prueba: juan@test.com / password123 (PLATA)");
+        log.debug("Login de prueba: maria@test.com / password123 (ORO)");
     }
 }

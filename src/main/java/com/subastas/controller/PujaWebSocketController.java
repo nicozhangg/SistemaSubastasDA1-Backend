@@ -40,6 +40,16 @@ public class PujaWebSocketController {
         String email = principal.getName();
         log.debug("Puja WebSocket recibida de {} para subasta {}: {}", email, subastaId, wsRequest);
 
+        if (wsRequest.getItemId() == null || wsRequest.getMonto() == null
+                || wsRequest.getMedioPagoId() == null
+                || wsRequest.getMonto().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            webSocketService.sendBidRejected(email, BidRejectedMessage.builder()
+                    .motivo("VALIDACION")
+                    .mensaje("Datos de puja incompletos o inválidos")
+                    .build());
+            return;
+        }
+
         try {
             PujaRequest request = new PujaRequest();
             request.setItemId(wsRequest.getItemId());
@@ -49,10 +59,10 @@ public class PujaWebSocketController {
             pujaService.realizarPuja(subastaId, email, request);
 
         } catch (Exception e) {
-            log.error("Error procesando puja WebSocket de {}: {}", email, e.getMessage(), e);
+            log.error("Error procesando puja WebSocket de {} en subasta {}: {}", email, subastaId, e.getMessage(), e);
             webSocketService.sendBidRejected(email, BidRejectedMessage.builder()
                     .motivo("ERROR_INTERNO")
-                    .mensaje("No se pudo procesar la puja: " + e.getMessage())
+                    .mensaje("No se pudo procesar la puja")
                     .build());
         }
     }

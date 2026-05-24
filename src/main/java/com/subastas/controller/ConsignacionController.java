@@ -1,6 +1,8 @@
 package com.subastas.controller;
 
 import com.subastas.model.dto.response.ConsignacionResponse;
+import com.subastas.model.dto.response.PolizaResponse;
+import com.subastas.model.dto.response.UbicacionResponse;
 import com.subastas.model.entity.Usuario;
 import com.subastas.service.ConsignacionService;
 import com.subastas.service.UsuarioService;
@@ -71,7 +73,7 @@ public class ConsignacionController {
     }
 
     @GetMapping("/{id}/ubicacion")
-    public ResponseEntity<Object> obtenerUbicacion(
+    public ResponseEntity<UbicacionResponse> obtenerUbicacion(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long id) {
         Usuario usuario = usuarioService.obtenerPorEmail(userDetails.getUsername());
@@ -79,7 +81,7 @@ public class ConsignacionController {
     }
 
     @GetMapping("/{id}/poliza")
-    public ResponseEntity<Object> obtenerPoliza(
+    public ResponseEntity<PolizaResponse> obtenerPoliza(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long id) {
         Usuario usuario = usuarioService.obtenerPorEmail(userDetails.getUsername());

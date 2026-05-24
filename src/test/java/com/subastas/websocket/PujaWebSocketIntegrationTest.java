@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Escenarios cubiertos:
  *  1. Puja válida → postor recibe BID_CONFIRMED, rival recibe BID_UPDATED
  *  2. Puja inválida (monto fuera de rango) → postor recibe BID_REJECTED
- *  3. Puja sin autenticación → servidor la ignora silenciosamente
+ *  3. Conexión sin autenticación → servidor rechaza la conexión
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -152,32 +152,21 @@ class PujaWebSocketIntegrationTest {
     }
 
     // -------------------------------------------------------------------------
-    // Test 2: puja sin autenticación es ignorada
+    // Test 2: conexión sin autenticación es rechazada
     // -------------------------------------------------------------------------
 
     @Test
     @Order(2)
-    void puja_sin_autenticacion_es_ignorada() throws Exception {
-        BlockingQueue<Map<String, Object>> mensajes = new LinkedBlockingQueue<>();
-
-        // Conectar SIN JWT
+    void conexion_sin_autenticacion_es_rechazada() {
         WebSocketStompClient client = crearStompClient();
-        StompSession session = client
-                .connectAsync(wsUrl, (WebSocketHttpHeaders) null, new StompHeaders(), new LoggingSessionHandler("anonimo"))
-                .get(5, TimeUnit.SECONDS);
 
-        session.subscribe("/topic/subastas/1", buildHandler(mensajes));
-        Thread.sleep(200);
-
-        enviarPuja(session, 1L, 1L, "55000.00", 1L);
-
-        // El servidor ignora la puja (Principal nulo) — nada debe llegar
-        Map<String, Object> msg = mensajes.poll(2, TimeUnit.SECONDS);
-        assertThat(msg)
-                .as("No debe llegar ningún mensaje a una sesión no autenticada")
-                .isNull();
-
-        session.disconnect();
+        // El servidor debe rechazar la conexión STOMP sin JWT lanzando una excepción
+        org.junit.jupiter.api.Assertions.assertThrows(Exception.class, () ->
+            client.connectAsync(wsUrl, (WebSocketHttpHeaders) null, new StompHeaders(),
+                    new LoggingSessionHandler("anonimo"))
+                  .get(5, TimeUnit.SECONDS),
+            "La conexión WebSocket sin JWT debe ser rechazada por el servidor"
+        );
     }
 
     // -------------------------------------------------------------------------

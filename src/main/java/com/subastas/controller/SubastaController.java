@@ -98,7 +98,9 @@ public class SubastaController {
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long id,
             @RequestParam(required = false) Long itemId,
-            @RequestParam(required = false) Boolean soloPropias) {
-        return ResponseEntity.ok(pujaService.obtenerHistorial(id, itemId, soloPropias, userDetails.getUsername()));
+            @RequestParam(required = false) Boolean soloPropias,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(pujaService.obtenerHistorial(id, itemId, soloPropias, userDetails.getUsername(), page, size));
     }
 }

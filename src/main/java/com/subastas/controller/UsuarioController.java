@@ -80,13 +80,13 @@ public class UsuarioController {
     }
 
     @GetMapping("/participaciones")
-    public ResponseEntity<List<Map<String, Object>>> listarParticipaciones(
+    public ResponseEntity<List<ParticipacionResponse>> listarParticipaciones(
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(usuarioService.listarParticipaciones(userDetails.getUsername()));
     }
 
     @GetMapping("/metricas")
-    public ResponseEntity<Map<String, Object>> obtenerMetricas(
+    public ResponseEntity<MetricasResponse> obtenerMetricas(
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(usuarioService.obtenerMetricas(userDetails.getUsername()));
     }

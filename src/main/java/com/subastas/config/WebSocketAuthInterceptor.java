@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageDeliveryException;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
@@ -44,10 +45,19 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                         UsernamePasswordAuthenticationToken auth =
                                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                         accessor.setUser(auth);
+                    } else {
+                        log.warn("Conexión WebSocket rechazada: token inválido o expirado");
+                        throw new MessageDeliveryException("Token inválido o expirado");
                     }
+                } catch (MessageDeliveryException e) {
+                    throw e;
                 } catch (Exception e) {
-                    log.warn("Token WebSocket inválido: {}", e.getMessage());
+                    log.warn("Conexión WebSocket rechazada: {}", e.getMessage());
+                    throw new MessageDeliveryException("Token inválido");
                 }
+            } else {
+                log.warn("Conexión WebSocket rechazada: no se envió token de autenticación");
+                throw new MessageDeliveryException("Se requiere autenticación");
             }
         }
 
