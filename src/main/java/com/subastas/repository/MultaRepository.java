@@ -14,8 +14,6 @@ public interface MultaRepository extends JpaRepository<Multa, Long> {
 
     List<Multa> findByUsuarioOrderByFechaGeneracionDesc(Usuario usuario);
 
-    List<Multa> findByUsuarioAndEstado(Usuario usuario, EstadoMulta estado);
-
     Optional<Multa> findByIdAndUsuario(Long id, Usuario usuario);
 
     long countByUsuarioAndEstado(Usuario usuario, EstadoMulta estado);

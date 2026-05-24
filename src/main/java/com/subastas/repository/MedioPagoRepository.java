@@ -13,9 +13,5 @@ public interface MedioPagoRepository extends JpaRepository<MedioPago, Long> {
 
     List<MedioPago> findByUsuario(Usuario usuario);
 
-    List<MedioPago> findByUsuarioAndVerificadoTrue(Usuario usuario);
-
     Optional<MedioPago> findByIdAndUsuario(Long id, Usuario usuario);
-
-    boolean existsByIdAndUsuario(Long id, Usuario usuario);
 }

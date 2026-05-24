@@ -5,6 +5,48 @@
 
 ---
 
+## Estado de implementación
+
+| Ítem | Severidad | Estado |
+|------|-----------|--------|
+| tokenRefresh real con expiración propia | CRÍTICO | ✅ Implementado |
+| Secreto JWT hardcodeado | CRÍTICO | ✅ Implementado |
+| Password de BD en prod hardcodeada | CRÍTICO | ✅ Implementado |
+| Archivos de DNI nunca guardados en disco | CRÍTICO | ✅ Implementado |
+| Sin mecanismo de cierre de subasta | CRÍTICO | ✅ Implementado |
+| Orden validaciones en login (estado antes de contraseña) | IMPORTANTE | ✅ Implementado |
+| `conectar()` devuelve ítem en posición 0 en vez de EN_SUBASTA | IMPORTANTE | ✅ Implementado |
+| Pujas WebSocket sin validaciones `@Valid` | IMPORTANTE | ✅ Implementado |
+| Email enviado antes del commit de transacción | IMPORTANTE | ✅ Implementado |
+| WebSocket broadcast antes del commit de transacción | IMPORTANTE | ✅ Implementado |
+| H2 Console sin autenticación | IMPORTANTE | ✅ Implementado |
+| Validación MIME por Content-Type del cliente | IMPORTANTE | ✅ Implementado |
+| Sin límite de tamaño en multipart | IMPORTANTE | ✅ Implementado |
+| N+1 en `items.size()` por subasta | IMPORTANTE | ✅ Implementado |
+| Query innecesaria a multas en cada puja | IMPORTANTE | ✅ Implementado |
+| N+1 en `GET /items/{id}` | IMPORTANTE | ✅ Implementado |
+| Historial de pujas sin paginación | IMPORTANTE | ✅ Implementado |
+| `ConsignacionService`: retornos `Object` / `Map` | IMPORTANTE | ✅ Implementado |
+| `UsuarioService`: retornos `Map<String,Object>` | IMPORTANTE | ✅ Implementado |
+| Sin configuración CORS | IMPORTANTE | ✅ Implementado |
+| `EstructuraActual.sql` desactualizado | IMPORTANTE | ✅ Implementado |
+| `aceptaPertenencia` hardcodeado a `true` | MENOR | ✅ Implementado |
+| Código de error `TOKEN_INVALIDO` para registro incompleto | MENOR | ✅ Implementado |
+| `sendBidRejected` disparado en llamadas REST | MENOR | ✅ Implementado |
+| Mensaje de excepción interna expuesto al cliente WS | MENOR | ✅ Implementado |
+| Token WS inválido no rechaza la conexión | MENOR | ✅ Implementado |
+| Credenciales en log nivel INFO | MENOR | ✅ Implementado |
+| `generarAlias()` en service incorrecto | MENOR | ✅ Implementado |
+| `CompraService` lazy load innecesario en pertenencia | MENOR | ✅ Implementado |
+| `EstadoPuja.PENDIENTE` nunca asignado | MENOR | ✅ Implementado |
+| Métodos de repositorio sin invocaciones | MENOR | ✅ Implementado |
+| `locksPorSubasta` crece indefinidamente | MENOR | ✅ Implementado (`liberarLock` en cierre) |
+| Rate limiting en endpoints de auth | IMPORTANTE | ⏸ Diferido |
+| Patrón de resolución de usuario inconsistente | IMPORTANTE | ⏸ Diferido |
+| Multas nunca generadas automáticamente | IMPORTANTE | ⏸ Diferido |
+
+---
+
 ## 1. Bugs y errores de lógica
 
 ### `AuthService.java:149–153` — CRÍTICO

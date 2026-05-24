@@ -44,7 +44,6 @@ public class PujaService {
     private final ItemRepository itemRepository;
     private final MedioPagoRepository medioPagoRepository;
     private final ParticipacionRepository participacionRepository;
-    private final MultaRepository multaRepository;
     private final UsuarioService usuarioService;
     private final ApplicationEventPublisher eventPublisher;
 

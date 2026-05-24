@@ -14,7 +14,5 @@ public interface ConsignacionRepository extends JpaRepository<Consignacion, Long
 
     List<Consignacion> findByUsuarioOrderByIdDesc(Usuario usuario);
 
-    List<Consignacion> findByUsuarioAndEstado(Usuario usuario, EstadoConsignacion estado);
-
     Optional<Consignacion> findByIdAndUsuario(Long id, Usuario usuario);
 }

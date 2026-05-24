@@ -1,189 +1,270 @@
-create table paises(
-	numero int not null,
-	nombre varchar(250) not null,
-	nombreCorto varchar(250) null,
-	capital varchar(250) not null,
-	nacionalidad varchar(250) not null,
-	idiomas varchar(150) not null,
-	constraint pk_paises primary key (numero)
-)
-go
-create table personas(
-	identificador int not null identity,
-	documento varchar(20) not null,
-	nombre varchar(150) not null,
-	direccion varchar(250),
-	estado varchar(15) constraint chkEstado check (estado in ('activo', 'incativo')),
-	foto varbinary(max)
-	constraint pk_personas primary key (identificador)
-)
-go
-create table empleados(
-	identificador int not null,
-	cargo varchar(100),
-	sector int null,
-	constraint pk_empleados primary key (identificador)
-)
-go
+-- ============================================================
+-- Esquema actual del Sistema de Subastas DA1
+-- Generado a partir de las entidades JPA (MySQL / InnoDB)
+-- Hibernate gestiona el DDL automÃ¡ticamente:
+--   dev  â†’ spring.jpa.hibernate.ddl-auto=create-drop  (H2)
+--   prod â†’ spring.jpa.hibernate.ddl-auto=validate     (MySQL)
+-- Este archivo es referencia documental, no se ejecuta en arranque.
+-- ============================================================
 
-create table sectores(
-	identificador int not null identity,
-	nombreSector varchar(150) not null,
-	codigoSector varchar(10) null,
-	responsableSector int null,
-	constraint pk_sectores primary key (identificador),
-	constraint fk_sectores_empleados foreign key (responsableSector) references empleados
-)
-go
+-- ------------------------------------------------------------
+-- Tablas independientes (sin FK)
+-- ------------------------------------------------------------
 
-create table seguros(
-	nroPoliza varchar(30) not null.
-	compania varchar(150) not null,
-	polizaCombinada varchar(2) constraint chkpolizaCombinada check(polizaCombinada in ('si','no')),
-	importe decimal(18,2) not null constraint chkImporte check (importe > 0),
-	constraint pk_seguro primary key (nroPoliza)
-)
-go
-	
-create table clientes(
-	identificador int not null,
-	numeroPais int,
-	admitido varchar(2) constraint chkAdmitido check(admitido in ('si','no')),
-	categoria varchar(10) constraint chkCategoria check (categoria in ('comun', 'especial', 'plata', 'oro', 'platino')),
-	verificador int not null,
-	constraint pk_clientes primary key (identificador),
-	constraint fk_clientes_personas foreign key (identificador) references personas,
-	constraint fk_clientes_empleados foreign key (verificador) references empleados (identificador),
-	constraint fk_clientes_paises foreign key (numeroPais) references paises (numero)
-)
-go
+CREATE TABLE rematadores (
+    id          BIGINT          NOT NULL AUTO_INCREMENT,
+    nombre      VARCHAR(255)    NOT NULL,
+    apellido    VARCHAR(255)    NOT NULL,
+    email       VARCHAR(255)    NOT NULL UNIQUE,
+    telefono    VARCHAR(255),
+    matricula   VARCHAR(255),
+    PRIMARY KEY (id)
+);
 
-create table duenios(
-	identificador int not null,
-	numeroPais int,
-	verificaciónFinanciera varchar(2) constraint chkVF check(verificaciónFinanciera in ('si','no')),
-	verificaciónJudicial varchar(2) constraint chkVJ check(verificaciónJudicial in ('si','no')),
-	calificacionRiesgo int constraint chkCR check(calificacionRiesgo in (1,2,3,4,5,6)),
-	verificador int not null
-	constraint pk_duenios primary key (identificador),
-	constraint fk_duenios_personas foreign key (identificador) references personas,
-	constraint fk_duenios_empleados foreign key (verificador) references empleados (identificador)
-)
-go
+CREATE TABLE usuarios (
+    id                  BIGINT          NOT NULL AUTO_INCREMENT,
+    nombre              VARCHAR(255)    NOT NULL,
+    apellido            VARCHAR(255)    NOT NULL,
+    email               VARCHAR(255)    NOT NULL UNIQUE,
+    password            VARCHAR(255),
+    domicilio_legal     VARCHAR(255),
+    pais_origen         VARCHAR(255),
+    categoria           VARCHAR(20)     NOT NULL,   -- COMUN | ESPECIAL | PLATA | ORO | PLATINO
+    estado              VARCHAR(30)     NOT NULL,   -- ACTIVO | BLOQUEADO | PENDIENTE_VERIFICACION
+    numero_dni          VARCHAR(255)    UNIQUE,
+    foto_dni_frente     VARCHAR(255),
+    foto_dni_dorso      VARCHAR(255),
+    multas_pendientes   INT             NOT NULL DEFAULT 0,
+    fecha_registro      DATETIME(6),
+    token_email         VARCHAR(255),
+    token_expiracion    DATETIME(6),
+    PRIMARY KEY (id)
+);
 
-create table subastadores(
-	identificador int not null,
-	matricula varchar(15),
-	region varchar(50),
-	constraint pk_subastadores primary key (identificador),
-	constraint fk_subastadores_personas foreign key (identificador) references personas
-)
-go
+CREATE TABLE polizas (
+    id                   BIGINT          NOT NULL AUTO_INCREMENT,
+    aseguradora_nombre   VARCHAR(255)    NOT NULL,
+    aseguradora_contacto VARCHAR(255),
+    valor_asegurado      DECIMAL(15,2),
+    prima                DECIMAL(15,2),
+    vigencia_desde       DATE,
+    vigencia_hasta       DATE,
+    PRIMARY KEY (id)
+);
 
-create table subastas(
-	identificador int not null identity,
-	--las subastas tiene al menos 10 dias de anticipación al momento de crearlas.
-	fecha date constraint chkFecha check (fecha > dateAdd(dd, 10, getdate())),
-	hora time not null,
-	estado varchar(10) constraint chkES check (estado in ('abierta','carrada')),
-	subastador int null,
-	--direccion de don de se desarrolla el evento.
-	ubicacion varchar(350) null,
-	capacidadAsistentes int null,
-	--caracteristica del lugar donde se hacen las subastas
-	tieneDeposito varchar(2) constraint chkTD check(tieneDeposito in ('si','no')),
-	--caracteristica del lugar donde se hacen las subastas
-	seguridadPropia varchar(2) constraint chkSP check(seguridadPropia in ('si','no')),
-	categoria varchar(10) constraint chkCS check (categoria in ('comun', 'especial', 'plata', 'oro', 'platino')),
-	constraint pk_subastas primary key (identificador),
-	constraint fk_subastas_subastadores foreign key (subastador) references subastadores(identificador)
-)
-go
-create table productos(
-	identificador int not null identity,
-	fecha date,
-	disponible varchar(2) constraint chkD check (disponible in ('si','no')),
-	--se obtiene despues que un empleado realiza la revision.
-	descripcionCatalogo varchar(500) null default 'No Posee',
-	--url que apunta a un documento PDF firmado que contiene la descripción del producto.
-	descripcionCompleta varchar(300) not null,
-	revisor int not null,
-	duenio int not null,
-	seguro varchar(30) null,  
-	constraint pk_productos primary key (identificador),
-	constraint fk_productos_empleados foreign key (revisor) references empleados(identificador),
-	constraint fk_productos_duenios foreign key (duenio) references duenios(identificador)
-)
-go
-create table fotos(
-	identificador int not null identity,
-	producto int not null,
-	foto varbinary (max) not null,
-	constraint pk_fotos primary key (identificador),
-	constraint fk_fotos_productos foreign key (producto) references productos(identificador)
-)
-go
+CREATE TABLE poliza_bienes (
+    poliza_id   BIGINT          NOT NULL,
+    bien        VARCHAR(255),
+    CONSTRAINT fk_poliza_bienes_poliza FOREIGN KEY (poliza_id) REFERENCES polizas (id)
+);
 
-create table catalogos(
-	identificador int not null identity,
-	descripcion varchar(250) not null,
-	subasta int null,
-	responsable int not null,
-	constraint pk_catalogos primary key (identificador),
-	constraint fk_catalogos_empleados foreign key (responsable) references empleados(identificador),
-	constraint fk_catalogos_subastas foreign key (subasta) references subastas(identificador),
-)
-go
+CREATE TABLE depositos (
+    id            BIGINT          NOT NULL AUTO_INCREMENT,
+    nombre        VARCHAR(255)    NOT NULL,
+    direccion     VARCHAR(255)    NOT NULL,
+    latitud       DOUBLE,
+    longitud      DOUBLE,
+    fecha_ingreso DATETIME(6),
+    estado_fisico VARCHAR(255),
+    PRIMARY KEY (id)
+);
 
-create table itemsCatalogo(
-	identificador int not null identity,
-	catalogo int not null,
-	producto int not null,
-	precioBase decimal(18,2) not null constraint chkPB check (precioBase > 0.01),
-	comision decimal(18,2) not null constraint chkC check (comision > 0.01),
-	subastado varchar(2) constraint chkS check (subastado in ('si','no')),
-	constraint pk_itemsCatalogo primary key (identificador),
-	constraint fk_itemsCatalogo_catalogos foreign key (catalogo) references catalogos,
-	constraint fk_itemsCatalogo_productos foreign key (producto) references productos
-)
-go
+-- ------------------------------------------------------------
+-- Subastas
+-- ------------------------------------------------------------
 
-create table asistentes(
-	identificador int not null identity,
-	numeroPostor int not null,
-	cliente int not null,
-	subasta int not null
-	constraint pk_asistentes primary key (identificador),
-	constraint fk_asistentes_clientes foreign key (cliente) references clientes,
-	constraint fk_asistentes_subasta foreign key (subasta) references subastas
-)
-go
+CREATE TABLE subastas (
+    id           BIGINT          NOT NULL AUTO_INCREMENT,
+    titulo       VARCHAR(255)    NOT NULL,
+    descripcion  TEXT,
+    fecha_inicio DATETIME(6),
+    fecha_fin    DATETIME(6),
+    categoria    VARCHAR(20)     NOT NULL,   -- COMUN | ESPECIAL | PLATA | ORO | PLATINO
+    moneda       VARCHAR(10)     NOT NULL,   -- ARS | USD
+    estado       VARCHAR(20)     NOT NULL DEFAULT 'PROXIMA',  -- PROXIMA | ABIERTA | CERRADA
+    ubicacion    VARCHAR(255),
+    rematador_id BIGINT,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_subastas_rematador FOREIGN KEY (rematador_id) REFERENCES rematadores (id)
+);
 
-create table pujos(
-	identificador int not null identity,
-	asistente int not null,
-	item int not null,
-	importe decimal(18,2) not null constraint chkI check (importe > 0.01),
-	ganador varchar(2) constraint chkG check (ganador in ('si','no')) default 'no',
-	constraint pk_pujos primary key (identificador),
-	constraint fk_pujos_asistentes foreign key (asistente) references asistentes,
-	constraint fk_pujos_itemsCatalogo foreign key (item) references itemsCatalogo
-)
-go
+-- ------------------------------------------------------------
+-- Items
+-- ------------------------------------------------------------
 
-create table registroDeSubasta(
-	identificador int not null identity,
-	subasta int not null,
-	duenio int not null,
-	producto int not null,
-	cliente int not null,
-	importe decimal(18,2) not null constraint chkImportePagado check (importe > 0.01),
-	comision decimal(18,2) not null constraint chkComisionPagada check (comision > 0.01),
-	constraint pk_registroDeSubasta primary key (identificador),
-	constraint fk_registroDeSubasta_subastas foreign key (subasta) references subastas,
-	constraint fk_registroDeSubasta_duenios foreign key (duenio) references duenios,
-	constraint fk_registroDeSubasta_producto foreign key (producto) references productos,
-	constraint fk_registroDeSubasta_cliente foreign key (cliente) references clientes
-)
-go
+CREATE TABLE items (
+    id               BIGINT          NOT NULL AUTO_INCREMENT,
+    numero_pieza     VARCHAR(255),
+    descripcion      TEXT            NOT NULL,
+    precio_base      DECIMAL(15,2)   NOT NULL,
+    estado           VARCHAR(20)     NOT NULL DEFAULT 'DISPONIBLE',  -- DISPONIBLE | EN_SUBASTA | VENDIDO
+    dueno_actual     VARCHAR(255),
+    es_obra_arte     BOOLEAN         NOT NULL DEFAULT FALSE,
+    artista          VARCHAR(255),
+    fecha_creacion   DATE,
+    historia         TEXT,
+    ubicacion_fisica VARCHAR(255),
+    poliza_id        BIGINT,
+    subasta_id       BIGINT,
+    mejor_oferta     DECIMAL(15,2),
+    mejor_postor_id  BIGINT,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_items_poliza       FOREIGN KEY (poliza_id)       REFERENCES polizas  (id),
+    CONSTRAINT fk_items_subasta      FOREIGN KEY (subasta_id)      REFERENCES subastas (id),
+    CONSTRAINT fk_items_mejor_postor FOREIGN KEY (mejor_postor_id) REFERENCES usuarios (id)
+);
 
+CREATE TABLE item_componentes (
+    item_id     BIGINT          NOT NULL,
+    componente  VARCHAR(255),
+    CONSTRAINT fk_item_componentes_item FOREIGN KEY (item_id) REFERENCES items (id)
+);
+
+CREATE TABLE imagenes_item (
+    id           BIGINT          NOT NULL AUTO_INCREMENT,
+    url          VARCHAR(255)    NOT NULL,
+    orden        INT             NOT NULL DEFAULT 0,
+    descripcion  VARCHAR(255),
+    item_id      BIGINT          NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_imagenes_item_item FOREIGN KEY (item_id) REFERENCES items (id)
+);
+
+-- ------------------------------------------------------------
+-- Medios de pago
+-- ------------------------------------------------------------
+
+CREATE TABLE medios_pago (
+    id              BIGINT          NOT NULL AUTO_INCREMENT,
+    tipo            VARCHAR(30)     NOT NULL,   -- CHEQUE_CERTIFICADO | CUENTA_BANCARIA | TARJETA_CREDITO
+    alias           VARCHAR(255)    NOT NULL,
+    moneda          VARCHAR(10)     NOT NULL,   -- ARS | USD
+    verificado      BOOLEAN         NOT NULL DEFAULT FALSE,
+    monto_limite    DECIMAL(15,2),              -- CHEQUE_CERTIFICADO
+    numero_cuenta   VARCHAR(255),               -- CUENTA_BANCARIA
+    banco           VARCHAR(255),
+    tipo_cuenta     VARCHAR(255),
+    cbu             VARCHAR(255),
+    numero_tarjeta  VARCHAR(255),               -- TARJETA_CREDITO
+    titular         VARCHAR(255),
+    vencimiento     VARCHAR(255),
+    tipo_tarjeta    VARCHAR(255),
+    usuario_id      BIGINT          NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_medios_pago_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+);
+
+-- ------------------------------------------------------------
+-- Participaciones
+-- ------------------------------------------------------------
+
+CREATE TABLE participaciones (
+    id                  BIGINT      NOT NULL AUTO_INCREMENT,
+    usuario_id          BIGINT      NOT NULL,
+    subasta_id          BIGINT      NOT NULL,
+    medio_pago_id       BIGINT,
+    conectado           BOOLEAN     NOT NULL DEFAULT FALSE,
+    fecha_conexion      DATETIME(6),
+    fecha_desconexion   DATETIME(6),
+    PRIMARY KEY (id),
+    CONSTRAINT fk_participaciones_usuario    FOREIGN KEY (usuario_id)    REFERENCES usuarios    (id),
+    CONSTRAINT fk_participaciones_subasta    FOREIGN KEY (subasta_id)    REFERENCES subastas    (id),
+    CONSTRAINT fk_participaciones_medio_pago FOREIGN KEY (medio_pago_id) REFERENCES medios_pago (id)
+);
+
+-- ------------------------------------------------------------
+-- Pujas
+-- ------------------------------------------------------------
+
+CREATE TABLE pujas (
+    id            BIGINT          NOT NULL AUTO_INCREMENT,
+    monto         DECIMAL(15,2)   NOT NULL,
+    timestamp     DATETIME(6)     NOT NULL,
+    estado        VARCHAR(20)     NOT NULL DEFAULT 'CONFIRMADA',  -- CONFIRMADA | RECHAZADA
+    usuario_id    BIGINT          NOT NULL,
+    item_id       BIGINT          NOT NULL,
+    subasta_id    BIGINT          NOT NULL,
+    medio_pago_id BIGINT          NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_pujas_usuario    FOREIGN KEY (usuario_id)    REFERENCES usuarios    (id),
+    CONSTRAINT fk_pujas_item       FOREIGN KEY (item_id)       REFERENCES items       (id),
+    CONSTRAINT fk_pujas_subasta    FOREIGN KEY (subasta_id)    REFERENCES subastas    (id),
+    CONSTRAINT fk_pujas_medio_pago FOREIGN KEY (medio_pago_id) REFERENCES medios_pago (id)
+);
+
+-- ------------------------------------------------------------
+-- Compras
+-- ------------------------------------------------------------
+
+CREATE TABLE compras (
+    id              BIGINT          NOT NULL AUTO_INCREMENT,
+    item_id         BIGINT          NOT NULL,
+    usuario_id      BIGINT          NOT NULL,
+    monto_ofertado  DECIMAL(15,2)   NOT NULL,
+    comisiones      DECIMAL(15,2),
+    costo_envio     DECIMAL(15,2),
+    total           DECIMAL(15,2)   NOT NULL,
+    moneda          VARCHAR(10)     NOT NULL,   -- ARS | USD
+    medio_pago_id   BIGINT,
+    estado_pago     VARCHAR(20)     NOT NULL DEFAULT 'PENDIENTE',  -- PENDIENTE | PAGADO | FALLIDO
+    direccion_envio VARCHAR(255),
+    PRIMARY KEY (id),
+    CONSTRAINT fk_compras_item       FOREIGN KEY (item_id)       REFERENCES items       (id),
+    CONSTRAINT fk_compras_usuario    FOREIGN KEY (usuario_id)    REFERENCES usuarios    (id),
+    CONSTRAINT fk_compras_medio_pago FOREIGN KEY (medio_pago_id) REFERENCES medios_pago (id)
+);
+
+-- ------------------------------------------------------------
+-- Multas
+-- ------------------------------------------------------------
+
+CREATE TABLE multas (
+    id                  BIGINT          NOT NULL AUTO_INCREMENT,
+    monto               DECIMAL(15,2)   NOT NULL,
+    motivo              VARCHAR(255)    NOT NULL,
+    fecha_generacion    DATETIME(6)     NOT NULL,
+    fecha_limite_pago   DATETIME(6),
+    estado              VARCHAR(20)     NOT NULL DEFAULT 'PENDIENTE',  -- PENDIENTE | PAGADA
+    usuario_id          BIGINT          NOT NULL,
+    puja_id             BIGINT,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_multas_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id),
+    CONSTRAINT fk_multas_puja    FOREIGN KEY (puja_id)    REFERENCES pujas    (id)
+);
+
+-- ------------------------------------------------------------
+-- Consignaciones
+-- ------------------------------------------------------------
+
+CREATE TABLE consignaciones (
+    id                  BIGINT          NOT NULL AUTO_INCREMENT,
+    descripcion         TEXT            NOT NULL,
+    datos_adicionales   TEXT,
+    estado              VARCHAR(30)     NOT NULL DEFAULT 'PENDIENTE_REVISION',
+                                                -- PENDIENTE_REVISION | APROBADA | RECHAZADA | ASIGNADA
+    acepta_pertenencia  BOOLEAN         NOT NULL,
+    motivo_rechazo      TEXT,
+    precio_sugerido     DECIMAL(15,2),
+    valor_base          DECIMAL(15,2),
+    comisiones          DECIMAL(15,2),
+    subasta_id          BIGINT,
+    cuenta_destino_id   BIGINT,
+    usuario_id          BIGINT          NOT NULL,
+    poliza_id           BIGINT,
+    deposito_id         BIGINT,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_consignaciones_subasta        FOREIGN KEY (subasta_id)        REFERENCES subastas    (id),
+    CONSTRAINT fk_consignaciones_cuenta_destino FOREIGN KEY (cuenta_destino_id) REFERENCES medios_pago (id),
+    CONSTRAINT fk_consignaciones_usuario        FOREIGN KEY (usuario_id)        REFERENCES usuarios    (id),
+    CONSTRAINT fk_consignaciones_poliza         FOREIGN KEY (poliza_id)         REFERENCES polizas     (id),
+    CONSTRAINT fk_consignaciones_deposito       FOREIGN KEY (deposito_id)       REFERENCES depositos   (id)
+);
+
+CREATE TABLE fotos_consignacion (
+    id               BIGINT          NOT NULL AUTO_INCREMENT,
+    url              VARCHAR(255)    NOT NULL,
+    orden            INT             NOT NULL DEFAULT 0,
+    consignacion_id  BIGINT          NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_fotos_consignacion_consignacion FOREIGN KEY (consignacion_id) REFERENCES consignaciones (id)
+);

@@ -6,7 +6,6 @@ import com.subastas.model.entity.Compra;
 import com.subastas.model.entity.Usuario;
 import com.subastas.repository.CompraRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service

@@ -4,7 +4,6 @@ import com.subastas.model.entity.Item;
 import com.subastas.model.entity.Puja;
 import com.subastas.model.entity.Subasta;
 import com.subastas.model.entity.Usuario;
-import com.subastas.model.enums.EstadoPuja;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -32,5 +31,4 @@ public interface PujaRepository extends JpaRepository<Puja, Long> {
 
     List<Puja> findBySubastaAndItemAndUsuarioOrderByTimestampDesc(Subasta subasta, Item item, Usuario usuario);
 
-    List<Puja> findByUsuarioAndEstado(Usuario usuario, EstadoPuja estado);
 }
