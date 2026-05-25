@@ -218,6 +218,12 @@ public class SubastaService {
             if (item.getEstado() != EstadoItem.EN_SUBASTA) continue;
 
             if (item.getMejorPostor() != null) {
+                // Buscar el medio de pago con el que el ganador se conectó a la subasta
+                MedioPago medioPagoGanador = participacionRepository
+                        .findByUsuarioAndSubasta(item.getMejorPostor(), subasta)
+                        .map(Participacion::getMedioPago)
+                        .orElse(null);
+
                 Compra compra = Compra.builder()
                         .item(item)
                         .usuario(item.getMejorPostor())
@@ -226,7 +232,9 @@ public class SubastaService {
                         .costoEnvio(java.math.BigDecimal.ZERO)
                         .total(item.getMejorOferta())
                         .moneda(subasta.getMoneda())
+                        .medioPago(medioPagoGanador)
                         .estadoPago(EstadoPago.PENDIENTE)
+                        .fechaLimitePago(LocalDateTime.now().plusHours(72))
                         .build();
                 compraRepository.save(compra);
 

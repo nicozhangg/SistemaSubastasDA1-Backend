@@ -1,11 +1,13 @@
 package com.subastas.model.dto.response;
 
 import com.subastas.model.enums.EstadoPago;
+import com.subastas.model.enums.ModalidadEntrega;
 import com.subastas.model.enums.Moneda;
 import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -20,6 +22,9 @@ public class CompraResponse {
     private MedioPagoInfo medioPago;
     private EstadoPago estadoPago;
     private String direccionEnvio;
+    private ModalidadEntrega modalidadEntrega;
+    private boolean coberturaSeguroActiva;
+    private LocalDateTime fechaLimitePago;
 
     @Data
     @Builder

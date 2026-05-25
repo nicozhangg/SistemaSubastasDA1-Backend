@@ -30,7 +30,7 @@ CREATE TABLE usuarios (
     domicilio_legal     VARCHAR(255),
     pais_origen         VARCHAR(255),
     categoria           VARCHAR(20)     NOT NULL,   -- COMUN | ESPECIAL | PLATA | ORO | PLATINO
-    estado              VARCHAR(30)     NOT NULL,   -- ACTIVO | BLOQUEADO | PENDIENTE_VERIFICACION
+    estado              VARCHAR(30)     NOT NULL,   -- PENDIENTE_VERIFICACION | APROBADO | BLOQUEADO
     numero_dni          VARCHAR(255)    UNIQUE,
     foto_dni_frente     VARCHAR(255),
     foto_dni_dorso      VARCHAR(255),
@@ -101,7 +101,7 @@ CREATE TABLE items (
     dueno_actual     VARCHAR(255),
     es_obra_arte     BOOLEAN         NOT NULL DEFAULT FALSE,
     artista          VARCHAR(255),
-    fecha_creacion   DATE,
+    fecha_creacion_obra DATE,
     historia         TEXT,
     ubicacion_fisica VARCHAR(255),
     poliza_id        BIGINT,
@@ -206,8 +206,11 @@ CREATE TABLE compras (
     total           DECIMAL(15,2)   NOT NULL,
     moneda          VARCHAR(10)     NOT NULL,   -- ARS | USD
     medio_pago_id   BIGINT,
-    estado_pago     VARCHAR(20)     NOT NULL DEFAULT 'PENDIENTE',  -- PENDIENTE | PAGADO | FALLIDO
+    estado_pago     VARCHAR(20)     NOT NULL DEFAULT 'PENDIENTE',  -- PENDIENTE | PAGADO | INCUMPLIDO
     direccion_envio VARCHAR(255),
+    modalidad_entrega         VARCHAR(20),    -- ENVIO_DOMICILIO | RETIRO_PERSONAL
+    cobertura_seguro_activa   BOOLEAN         NOT NULL DEFAULT TRUE,
+    fecha_limite_pago         DATETIME(6),
     PRIMARY KEY (id),
     CONSTRAINT fk_compras_item       FOREIGN KEY (item_id)       REFERENCES items       (id),
     CONSTRAINT fk_compras_usuario    FOREIGN KEY (usuario_id)    REFERENCES usuarios    (id),
@@ -224,7 +227,7 @@ CREATE TABLE multas (
     motivo              VARCHAR(255)    NOT NULL,
     fecha_generacion    DATETIME(6)     NOT NULL,
     fecha_limite_pago   DATETIME(6),
-    estado              VARCHAR(20)     NOT NULL DEFAULT 'PENDIENTE',  -- PENDIENTE | PAGADA
+    estado              VARCHAR(20)     NOT NULL DEFAULT 'PENDIENTE',  -- PENDIENTE | PAGADA | DERIVADA_JUSTICIA
     usuario_id          BIGINT          NOT NULL,
     puja_id             BIGINT,
     PRIMARY KEY (id),
@@ -241,7 +244,7 @@ CREATE TABLE consignaciones (
     descripcion         TEXT            NOT NULL,
     datos_adicionales   TEXT,
     estado              VARCHAR(30)     NOT NULL DEFAULT 'PENDIENTE_REVISION',
-                                                -- PENDIENTE_REVISION | APROBADA | RECHAZADA | ASIGNADA
+                                                -- PENDIENTE_REVISION | ACEPTADA | RECHAZADA | EN_SUBASTA | VENDIDA | DEVUELTA
     acepta_pertenencia  BOOLEAN         NOT NULL,
     motivo_rechazo      TEXT,
     precio_sugerido     DECIMAL(15,2),
@@ -268,3 +271,54 @@ CREATE TABLE fotos_consignacion (
     PRIMARY KEY (id),
     CONSTRAINT fk_fotos_consignacion_consignacion FOREIGN KEY (consignacion_id) REFERENCES consignaciones (id)
 );
+
+CREATE TABLE mensajes_chat (
+    id               BIGINT          NOT NULL AUTO_INCREMENT,
+    contenido        TEXT            NOT NULL,
+    timestamp        DATETIME(6)     NOT NULL,
+    remitente        VARCHAR(10)     NOT NULL,
+    leido            BOOLEAN         NOT NULL DEFAULT FALSE,
+    compra_id        BIGINT          NOT NULL,
+    usuario_id       BIGINT          NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_mensajes_chat_compra  FOREIGN KEY (compra_id)  REFERENCES compras  (id),
+    CONSTRAINT fk_mensajes_chat_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+);
+
+-- ------------------------------------------------------------
+-- Índices adicionales (no FK)
+-- InnoDB ya indexa automáticamente las columnas FK.
+-- Estos índices cubren columnas consultadas en hot-paths del backend.
+-- ------------------------------------------------------------
+
+-- existsByUsuarioAndConectadoTrue() — evaluado en cada puja
+CREATE INDEX idx_participaciones_conectado
+    ON participaciones (conectado);
+
+-- findBySubastaAndConectadoTrue() — cierre de subasta desconecta a todos
+CREATE INDEX idx_participaciones_subasta_conectado
+    ON participaciones (subasta_id, conectado);
+
+-- historial de pujas ordenado descendentemente
+CREATE INDEX idx_pujas_timestamp
+    ON pujas (timestamp);
+
+-- scheduler: findByEstadoAndFechaFinLessThanEqual()
+CREATE INDEX idx_subastas_estado_fecha_fin
+    ON subastas (estado, fecha_fin);
+
+-- countByUsuarioAndEstado() — evaluado en cada puja para validar multas pendientes
+CREATE INDEX idx_multas_usuario_estado
+    ON multas (usuario_id, estado);
+
+-- scheduler: findByEstadoPagoAndFechaLimitePagoLessThanEqual()
+CREATE INDEX idx_compras_estado_fecha_limite
+    ON compras (estado_pago, fecha_limite_pago);
+
+-- scheduler: findByEstadoAndFechaLimitePagoLessThanEqual() — derivar multas vencidas
+CREATE INDEX idx_multas_estado_fecha_limite
+    ON multas (estado, fecha_limite_pago);
+
+-- obtenerMensajes: findByCompraOrderByTimestampAsc()
+CREATE INDEX idx_mensajes_chat_compra
+    ON mensajes_chat (compra_id, timestamp);

@@ -36,10 +36,6 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
 
-    public String generateToken(UserDetails userDetails) {
-        return generateToken(userDetails.getUsername());
-    }
-
     public String generateToken(String email) {
         return Jwts.builder()
                 .subject(email)
@@ -68,15 +64,6 @@ public class JwtUtil {
             return email.equals(userDetails.getUsername()) && !isTokenExpired(token);
         } catch (JwtException e) {
             log.debug("JWT inválido: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    public boolean isTokenValid(String token) {
-        try {
-            getClaims(token);
-            return true;
-        } catch (JwtException e) {
             return false;
         }
     }

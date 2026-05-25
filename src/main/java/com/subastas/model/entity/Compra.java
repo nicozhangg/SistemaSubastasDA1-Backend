@@ -1,11 +1,13 @@
 package com.subastas.model.entity;
 
 import com.subastas.model.enums.EstadoPago;
+import com.subastas.model.enums.ModalidadEntrega;
 import com.subastas.model.enums.Moneda;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "compras")
@@ -53,4 +55,15 @@ public class Compra {
 
     @Column(name = "direccion_envio")
     private String direccionEnvio;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "modalidad_entrega")
+    private ModalidadEntrega modalidadEntrega;
+
+    @Column(name = "cobertura_seguro_activa", nullable = false)
+    @Builder.Default
+    private boolean coberturaSeguroActiva = true;
+
+    @Column(name = "fecha_limite_pago")
+    private LocalDateTime fechaLimitePago;
 }

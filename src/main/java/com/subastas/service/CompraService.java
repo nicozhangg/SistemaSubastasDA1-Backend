@@ -42,6 +42,9 @@ public class CompraService {
                         : null)
                 .estadoPago(compra.getEstadoPago())
                 .direccionEnvio(compra.getDireccionEnvio())
+                .modalidadEntrega(compra.getModalidadEntrega())
+                .coberturaSeguroActiva(compra.isCoberturaSeguroActiva())
+                .fechaLimitePago(compra.getFechaLimitePago())
                 .build();
     }
 }

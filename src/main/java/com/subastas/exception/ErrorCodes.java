@@ -25,4 +25,6 @@ public final class ErrorCodes {
     public static final String PERTENENCIA_NO_DECLARADA   = "PERTENENCIA_NO_DECLARADA";
     public static final String CREDENCIALES_INVALIDAS     = "CREDENCIALES_INVALIDAS";
     public static final String REGISTRO_INCOMPLETO        = "REGISTRO_INCOMPLETO";
+    public static final String ENTREGA_YA_CONFIRMADA      = "ENTREGA_YA_CONFIRMADA";
+    public static final String DIRECCION_REQUERIDA        = "DIRECCION_REQUERIDA";
 }

@@ -101,6 +101,19 @@ util/           → Helpers (JwtUtil, etc.)
 - id, item, usuario, monto_ofertado, comisiones, costo_envio, total
 - moneda, medio_pago, estado_pago: ENUM(PENDIENTE, PAGADO, INCUMPLIDO)
 - direccion_envio
+- modalidad_entrega: ENUM(ENVIO_DOMICILIO, RETIRO_PERSONAL) — se define por chat con la empresa post-subasta
+- cobertura_seguro_activa: boolean — se pone en `false` cuando el usuario retira personalmente el bien
+
+### MensajeChat
+- id, contenido, timestamp
+- remitente: ENUM(USUARIO, EMPRESA)
+- leido: boolean
+- compra (ManyToOne) — el chat está asociado a una compra específica
+- usuario (ManyToOne)
+
+> El chat se usa post-subasta para coordinar dos cosas:
+> 1. Si el ganador quiere envío a domicilio o retiro personal (si retira, pierde la cobertura del seguro)
+> 2. Si el ganador quiere ampliar la cobertura del seguro pagando la diferencia del premio
 
 ---
 
@@ -138,6 +151,18 @@ util/           → Helpers (JwtUtil, etc.)
 - Cuando nadie supera la mejor oferta, el último postor gana el ítem
 - Si nadie puja → la empresa compra el ítem al precio base
 - Al cerrar: se registra la venta, se notifica al ganador (mensaje privado con desglose: monto + comisiones + envío)
+
+### Chat post-subasta
+- Al ganar un ítem, se abre automáticamente un chat entre el ganador y la empresa vinculado a esa `Compra`
+- A través del chat el usuario coordina:
+  - **Modalidad de entrega:** envío a domicilio (default, costo incluido en la factura) o retiro personal
+  - **Ampliación del seguro:** si el bien aún está en depósito, el usuario puede solicitar aumentar el valor de la póliza; la empresa le informa la diferencia del premio y el usuario la abona
+- Si el usuario elige retiro personal: `cobertura_seguro_activa = false` al momento de confirmar el retiro
+- El chat queda registrado como historial de la compra
+- Endpoints necesarios:
+  - `GET /compras/{id}/chat` — obtener mensajes del chat
+  - `POST /compras/{id}/chat` — enviar mensaje (usuario o empresa)
+  - `PATCH /compras/{id}/entrega` — confirmar modalidad de entrega (`ENVIO_DOMICILIO` / `RETIRO_PERSONAL`)
 
 ### Moneda
 - Cada subasta es exclusivamente ARS o USD (no bimonetaria)
@@ -301,6 +326,7 @@ Códigos de error de negocio a definir como constantes:
 - [ ] JWT (generación y validación)
 - [ ] GlobalExceptionHandler
 - [ ] Mock de verificación externa (delay 3 seg, siempre exitoso)
+- [ ] Chat post-subasta (entidad MensajeChat, endpoints GET/POST, lógica de retiro personal y seguro)
 - [ ] Datos de prueba (data.sql o @Bean CommandLineRunner)
 
 **No trabajar el frontend en esta etapa.**
