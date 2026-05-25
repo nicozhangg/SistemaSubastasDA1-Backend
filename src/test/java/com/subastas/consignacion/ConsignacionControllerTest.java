@@ -48,9 +48,9 @@ class ConsignacionControllerTest extends BaseIntegrationTest {
             body.add("fotos", fakeImage("foto" + i + ".jpg"));
         }
 
-        ResponseEntity<Map> res = rest.exchange(
+        ResponseEntity<Map<String, Object>> res = rest.exchange(
                 "/api/v1/consignaciones", HttpMethod.POST,
-                new HttpEntity<>(body, headers), Map.class);
+                new HttpEntity<>(body, headers), MAP_TYPE);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -70,9 +70,9 @@ class ConsignacionControllerTest extends BaseIntegrationTest {
             body.add("fotos", fakeImage("foto" + i + ".jpg"));
         }
 
-        ResponseEntity<Map> res = rest.exchange(
+        ResponseEntity<Map<String, Object>> res = rest.exchange(
                 "/api/v1/consignaciones", HttpMethod.POST,
-                new HttpEntity<>(body, headers), Map.class);
+                new HttpEntity<>(body, headers), MAP_TYPE);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -91,8 +91,8 @@ class ConsignacionControllerTest extends BaseIntegrationTest {
     @Test
     @Order(5)
     void obtener_ubicacion_consignacion() {
-        ResponseEntity<Map> res = getWithAuth(
-                "/api/v1/consignaciones/1/ubicacion", jwtJuan, Map.class);
+        ResponseEntity<Map<String, Object>> res = getWithAuth(
+                "/api/v1/consignaciones/1/ubicacion", jwtJuan, MAP_TYPE);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).containsKey("depositoNombre");
@@ -101,8 +101,8 @@ class ConsignacionControllerTest extends BaseIntegrationTest {
     @Test
     @Order(6)
     void obtener_poliza_consignacion() {
-        ResponseEntity<Map> res = getWithAuth(
-                "/api/v1/consignaciones/1/poliza", jwtJuan, Map.class);
+        ResponseEntity<Map<String, Object>> res = getWithAuth(
+                "/api/v1/consignaciones/1/poliza", jwtJuan, MAP_TYPE);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).containsKey("aseguradoraNombre");
@@ -111,7 +111,7 @@ class ConsignacionControllerTest extends BaseIntegrationTest {
     @Test
     @Order(7)
     void consignaciones_sin_jwt_es_rechazado() {
-        ResponseEntity<Map> res = getNoAuth("/api/v1/consignaciones", Map.class);
+        ResponseEntity<Map<String, Object>> res = getNoAuth("/api/v1/consignaciones", MAP_TYPE);
         assertThat(res.getStatusCode()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
     }
 

@@ -87,8 +87,8 @@ class ChatControllerTest extends BaseIntegrationTest {
     @Test
     @Order(3)
     void otro_usuario_no_puede_ver_chat_ajeno() {
-        ResponseEntity<Map> res = getWithAuth(
-                "/api/v1/compras/" + compraId + "/chat", jwtMaria, Map.class);
+        ResponseEntity<Map<String, Object>> res = getWithAuth(
+                "/api/v1/compras/" + compraId + "/chat", jwtMaria, MAP_TYPE);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -115,8 +115,8 @@ class ChatControllerTest extends BaseIntegrationTest {
         EntregaRequest req = new EntregaRequest();
         req.setModalidadEntrega(ModalidadEntrega.RETIRO_PERSONAL);
 
-        ResponseEntity<Map> res = patchWithAuth(
-                "/api/v1/compras/" + compraId + "/entrega", jwtJuan, req, Map.class);
+        ResponseEntity<Map<String, Object>> res = patchWithAuth(
+                "/api/v1/compras/" + compraId + "/entrega", jwtJuan, req, MAP_TYPE);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -152,8 +152,8 @@ class ChatControllerTest extends BaseIntegrationTest {
         MensajeChatRequest req = new MensajeChatRequest();
         req.setContenido("");
 
-        ResponseEntity<Map> res = postWithAuth(
-                "/api/v1/compras/" + compraId + "/chat", jwtJuan, req, Map.class);
+        ResponseEntity<Map<String, Object>> res = postWithAuth(
+                "/api/v1/compras/" + compraId + "/chat", jwtJuan, req, MAP_TYPE);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -161,8 +161,8 @@ class ChatControllerTest extends BaseIntegrationTest {
     @Test
     @Order(8)
     void chat_sin_jwt_es_rechazado() {
-        ResponseEntity<Map> res = getNoAuth(
-                "/api/v1/compras/" + compraId + "/chat", Map.class);
+        ResponseEntity<Map<String, Object>> res = getNoAuth(
+                "/api/v1/compras/" + compraId + "/chat", MAP_TYPE);
 
         assertThat(res.getStatusCode()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
     }

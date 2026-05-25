@@ -6,17 +6,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 public abstract class BaseIntegrationTest {
+
+    protected static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE =
+            new ParameterizedTypeReference<>() {};
 
     @Autowired
     protected TestRestTemplate rest;
@@ -91,6 +97,34 @@ public abstract class BaseIntegrationTest {
     }
 
     protected <T> ResponseEntity<T> getNoAuth(String url, Class<T> type) {
+        return rest.exchange(url, HttpMethod.GET, new HttpEntity<>(jsonHeaders()), type);
+    }
+
+    protected <T> ResponseEntity<T> getWithAuth(String url, String jwt, ParameterizedTypeReference<T> type) {
+        return rest.exchange(url, HttpMethod.GET, new HttpEntity<>(authHeaders(jwt)), type);
+    }
+
+    protected <T> ResponseEntity<T> postWithAuth(String url, String jwt, Object body, ParameterizedTypeReference<T> type) {
+        return rest.exchange(url, HttpMethod.POST, new HttpEntity<>(body, authHeaders(jwt)), type);
+    }
+
+    protected <T> ResponseEntity<T> patchWithAuth(String url, String jwt, Object body, ParameterizedTypeReference<T> type) {
+        return rawRest().exchange(baseUrl(url), HttpMethod.PATCH, new HttpEntity<>(body, authHeaders(jwt)), type);
+    }
+
+    protected <T> ResponseEntity<T> deleteWithAuth(String url, String jwt, ParameterizedTypeReference<T> type) {
+        return rest.exchange(url, HttpMethod.DELETE, new HttpEntity<>(authHeaders(jwt)), type);
+    }
+
+    protected <T> ResponseEntity<T> postNoAuth(String url, Object body, ParameterizedTypeReference<T> type) {
+        return rest.exchange(url, HttpMethod.POST, new HttpEntity<>(body, jsonHeaders()), type);
+    }
+
+    protected <T> ResponseEntity<T> postNoAuthRaw(String url, Object body, ParameterizedTypeReference<T> type) {
+        return rawRest().exchange(baseUrl(url), HttpMethod.POST, new HttpEntity<>(body, jsonHeaders()), type);
+    }
+
+    protected <T> ResponseEntity<T> getNoAuth(String url, ParameterizedTypeReference<T> type) {
         return rest.exchange(url, HttpMethod.GET, new HttpEntity<>(jsonHeaders()), type);
     }
 }

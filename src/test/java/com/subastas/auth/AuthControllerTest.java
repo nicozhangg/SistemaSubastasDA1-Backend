@@ -3,7 +3,6 @@ package com.subastas.auth;
 import com.subastas.BaseIntegrationTest;
 import com.subastas.model.dto.request.RegistroPaso2Request;
 import com.subastas.model.dto.response.LoginResponse;
-import com.subastas.model.dto.response.RegistroResponse;
 import com.subastas.model.entity.Usuario;
 import com.subastas.model.enums.EstadoUsuario;
 import com.subastas.repository.UsuarioRepository;
@@ -43,10 +42,10 @@ class AuthControllerTest extends BaseIntegrationTest {
     @Order(2)
     void login_con_credenciales_incorrectas_devuelve_401() {
         // Usar rawRest para evitar que HttpURLConnection reintente en 401
-        ResponseEntity<Map> res = postNoAuthRaw(
+        ResponseEntity<Map<String, Object>> res = postNoAuthRaw(
                 "/api/v1/auth/login",
                 Map.of("email", "juan@test.com", "password", "wrongpassword"),
-                Map.class);
+                MAP_TYPE);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
@@ -54,10 +53,10 @@ class AuthControllerTest extends BaseIntegrationTest {
     @Test
     @Order(3)
     void login_con_email_inexistente_devuelve_401() {
-        ResponseEntity<Map> res = postNoAuthRaw(
+        ResponseEntity<Map<String, Object>> res = postNoAuthRaw(
                 "/api/v1/auth/login",
                 Map.of("email", "noexiste@test.com", "password", "password123"),
-                Map.class);
+                MAP_TYPE);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
@@ -71,10 +70,10 @@ class AuthControllerTest extends BaseIntegrationTest {
         usuarioRepository.save(usuario);
 
         try {
-            ResponseEntity<Map> res = postNoAuthRaw(
+            ResponseEntity<Map<String, Object>> res = postNoAuthRaw(
                     "/api/v1/auth/login",
                     Map.of("email", "juan@test.com", "password", "password123"),
-                    Map.class);
+                    MAP_TYPE);
 
             assertThat(res.getStatusCode().value()).isGreaterThanOrEqualTo(400);
         } finally {
@@ -105,9 +104,9 @@ class AuthControllerTest extends BaseIntegrationTest {
             @Override public String getFilename() { return "d.jpg"; }
         });
 
-        ResponseEntity<Map> res = rest.exchange(
+        ResponseEntity<Map<String, Object>> res = rest.exchange(
                 "/api/v1/auth/registro/paso1", HttpMethod.POST,
-                new HttpEntity<>(body, headers), Map.class);
+                new HttpEntity<>(body, headers), MAP_TYPE);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     }
@@ -122,7 +121,7 @@ class AuthControllerTest extends BaseIntegrationTest {
         req.setTokenEmail("token-falso-inexistente");
         req.setPassword("miPassword123");
 
-        ResponseEntity<Map> res = postNoAuth("/api/v1/auth/registro/paso2", req, Map.class);
+        ResponseEntity<Map<String, Object>> res = postNoAuth("/api/v1/auth/registro/paso2", req, MAP_TYPE);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }

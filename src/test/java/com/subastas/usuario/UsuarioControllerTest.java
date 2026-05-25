@@ -52,7 +52,7 @@ class UsuarioControllerTest extends BaseIntegrationTest {
     @Test
     @Order(2)
     void perfil_sin_jwt_es_rechazado() {
-        ResponseEntity<Map> res = getNoAuth("/api/v1/usuarios/perfil", Map.class);
+        ResponseEntity<Map<String, Object>> res =getNoAuth("/api/v1/usuarios/perfil", MAP_TYPE);
         assertThat(res.getStatusCode()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
     }
 
@@ -94,14 +94,14 @@ class UsuarioControllerTest extends BaseIntegrationTest {
         // Conectar a subasta
         ConectarSubastaRequest conectar = new ConectarSubastaRequest();
         conectar.setMedioPagoId(1L);
-        postWithAuth("/api/v1/subastas/1/conectar", jwtJuan, conectar, Map.class);
+        postWithAuth("/api/v1/subastas/1/conectar", jwtJuan, conectar, MAP_TYPE);
 
         // Intentar eliminar medio de pago
-        ResponseEntity<Map> res = deleteWithAuth("/api/v1/usuarios/medios-pago/1", jwtJuan, Map.class);
+        ResponseEntity<Map<String, Object>> res =deleteWithAuth("/api/v1/usuarios/medios-pago/1", jwtJuan, MAP_TYPE);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 
         // Limpiar
-        postWithAuth("/api/v1/subastas/1/desconectar", jwtJuan, null, Map.class);
+        postWithAuth("/api/v1/subastas/1/desconectar", jwtJuan, null, MAP_TYPE);
     }
 
     // ---- Multas ----

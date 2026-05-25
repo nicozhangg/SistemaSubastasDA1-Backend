@@ -27,14 +27,14 @@ class SubastaControllerTest extends BaseIntegrationTest {
     @Test
     @Order(1)
     void listar_subastas_requiere_autenticacion() {
-        ResponseEntity<Map> res = getNoAuth("/api/v1/subastas", Map.class);
+        ResponseEntity<Map<String, Object>> res =getNoAuth("/api/v1/subastas", MAP_TYPE);
         assertThat(res.getStatusCode()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
     }
 
     @Test
     @Order(2)
     void listar_subastas_autenticado_devuelve_resultados() {
-        ResponseEntity<Map> res = getWithAuth("/api/v1/subastas", jwtJuan, Map.class);
+        ResponseEntity<Map<String, Object>> res =getWithAuth("/api/v1/subastas", jwtJuan, MAP_TYPE);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).containsKey("data");
@@ -65,7 +65,7 @@ class SubastaControllerTest extends BaseIntegrationTest {
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().getSesionId()).isNotNull();
 
-        postWithAuth("/api/v1/subastas/1/desconectar", jwtJuan, null, Map.class);
+        postWithAuth("/api/v1/subastas/1/desconectar", jwtJuan, null, MAP_TYPE);
     }
 
     @Test
@@ -75,30 +75,30 @@ class SubastaControllerTest extends BaseIntegrationTest {
         req.setMedioPagoId(1L);
         postWithAuth("/api/v1/subastas/1/conectar", jwtJuan, req, ConectarSubastaResponse.class);
 
-        ResponseEntity<Map> res = postWithAuth("/api/v1/subastas/1/conectar", jwtJuan, req, Map.class);
+        ResponseEntity<Map<String, Object>> res =postWithAuth("/api/v1/subastas/1/conectar", jwtJuan, req, MAP_TYPE);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 
-        postWithAuth("/api/v1/subastas/1/desconectar", jwtJuan, null, Map.class);
+        postWithAuth("/api/v1/subastas/1/desconectar", jwtJuan, null, MAP_TYPE);
     }
 
     @Test
     @Order(6)
     void desconectar_sin_estar_conectado_falla() {
-        ResponseEntity<Map> res = postWithAuth("/api/v1/subastas/1/desconectar", jwtMaria, null, Map.class);
+        ResponseEntity<Map<String, Object>> res =postWithAuth("/api/v1/subastas/1/desconectar", jwtMaria, null, MAP_TYPE);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
     @Order(7)
     void estado_puja_sin_estar_conectado_falla() {
-        ResponseEntity<Map> res = getWithAuth("/api/v1/subastas/1/pujas/estado", jwtMaria, Map.class);
+        ResponseEntity<Map<String, Object>> res =getWithAuth("/api/v1/subastas/1/pujas/estado", jwtMaria, MAP_TYPE);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
     @Order(8)
     void obtener_subasta_inexistente_devuelve_404() {
-        ResponseEntity<Map> res = getWithAuth("/api/v1/subastas/9999", jwtJuan, Map.class);
+        ResponseEntity<Map<String, Object>> res =getWithAuth("/api/v1/subastas/9999", jwtJuan, MAP_TYPE);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 }
