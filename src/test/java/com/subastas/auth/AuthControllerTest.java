@@ -14,7 +14,6 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class AuthControllerTest extends BaseIntegrationTest {
 
     @Autowired
@@ -23,7 +22,6 @@ class AuthControllerTest extends BaseIntegrationTest {
     // ---- Login ----
 
     @Test
-    @Order(1)
     void login_exitoso_devuelve_jwt_y_datos_usuario() {
         ResponseEntity<LoginResponse> res = postNoAuth(
                 "/api/v1/auth/login",
@@ -39,7 +37,6 @@ class AuthControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    @Order(2)
     void login_con_credenciales_incorrectas_devuelve_401() {
         // Usar rawRest para evitar que HttpURLConnection reintente en 401
         ResponseEntity<Map<String, Object>> res = postNoAuthRaw(
@@ -51,7 +48,6 @@ class AuthControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    @Order(3)
     void login_con_email_inexistente_devuelve_401() {
         ResponseEntity<Map<String, Object>> res = postNoAuthRaw(
                 "/api/v1/auth/login",
@@ -62,7 +58,6 @@ class AuthControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    @Order(4)
     void login_usuario_bloqueado_no_permite_acceso() {
         Usuario usuario = usuarioRepository.findByEmail("juan@test.com").orElseThrow();
         EstadoUsuario estadoOriginal = usuario.getEstado();
@@ -75,7 +70,7 @@ class AuthControllerTest extends BaseIntegrationTest {
                     Map.of("email", "juan@test.com", "password", "password123"),
                     MAP_TYPE);
 
-            assertThat(res.getStatusCode().value()).isGreaterThanOrEqualTo(400);
+            assertThat(res.getStatusCode()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
         } finally {
             usuario.setEstado(estadoOriginal);
             usuarioRepository.save(usuario);
@@ -85,7 +80,6 @@ class AuthControllerTest extends BaseIntegrationTest {
     // ---- Registro paso 1: email duplicado ----
 
     @Test
-    @Order(5)
     void registro_paso1_email_duplicado_devuelve_409() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -114,7 +108,6 @@ class AuthControllerTest extends BaseIntegrationTest {
     // ---- Registro paso 2 ----
 
     @Test
-    @Order(6)
     void registro_paso2_con_token_invalido_devuelve_400() {
         RegistroPaso2Request req = new RegistroPaso2Request();
         req.setEmail("juan@test.com");
@@ -124,5 +117,33 @@ class AuthControllerTest extends BaseIntegrationTest {
         ResponseEntity<Map<String, Object>> res = postNoAuth("/api/v1/auth/registro/paso2", req, MAP_TYPE);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void refresh_token_devuelve_nuevo_access_token() {
+        ResponseEntity<LoginResponse> loginRes = postNoAuth(
+                "/api/v1/auth/login",
+                Map.of("email", "juan@test.com", "password", "password123"),
+                LoginResponse.class);
+        String refreshToken = loginRes.getBody().getTokenRefresh();
+
+        ResponseEntity<Map<String, Object>> res = postNoAuth(
+                "/api/v1/auth/refresh",
+                Map.of("refreshToken", refreshToken),
+                MAP_TYPE);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody()).containsKey("tokenAcceso");
+        assertThat(res.getBody().get("tokenAcceso").toString()).isNotBlank();
+    }
+
+    @Test
+    void refresh_token_invalido_devuelve_401() {
+        ResponseEntity<Map<String, Object>> res = postNoAuthRaw(
+                "/api/v1/auth/refresh",
+                Map.of("refreshToken", "token.invalido.falso"),
+                MAP_TYPE);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 }

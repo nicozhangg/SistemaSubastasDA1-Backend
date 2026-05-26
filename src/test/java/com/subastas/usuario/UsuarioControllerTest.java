@@ -22,7 +22,6 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class UsuarioControllerTest extends BaseIntegrationTest {
 
     @Autowired
@@ -31,16 +30,35 @@ class UsuarioControllerTest extends BaseIntegrationTest {
     private UsuarioRepository usuarioRepository;
 
     private String jwtJuan;
+    private Long multaIdCreada;
 
     @BeforeEach
     void setUp() {
         jwtJuan = loginAndGetToken("juan@test.com", "password123");
     }
 
+    @AfterEach
+    void cleanup() {
+        // Eliminar multa creada en el test si aún existe
+        if (multaIdCreada != null) {
+            multaRepository.deleteById(multaIdCreada);
+            multaIdCreada = null;
+        }
+        // Garantizar que Juan no quede conectado a una subasta si el test falla a mitad
+        if (jwtJuan != null) {
+            postWithAuth("/api/v1/subastas/1/desconectar", jwtJuan, null, MAP_TYPE);
+        }
+        // Sincronizar el contador de multas pendientes de Juan con el estado real de la BD
+        usuarioRepository.findByEmail("juan@test.com").ifPresent(juan -> {
+            long pendientes = multaRepository.countByUsuarioAndEstado(juan, EstadoMulta.PENDIENTE);
+            juan.setMultasPendientes((int) pendientes);
+            usuarioRepository.save(juan);
+        });
+    }
+
     // ---- Perfil ----
 
     @Test
-    @Order(1)
     void obtener_perfil_devuelve_datos_del_usuario() {
         ResponseEntity<UsuarioResponse> res = getWithAuth("/api/v1/usuarios/perfil", jwtJuan, UsuarioResponse.class);
 
@@ -50,7 +68,6 @@ class UsuarioControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    @Order(2)
     void perfil_sin_jwt_es_rechazado() {
         ResponseEntity<Map<String, Object>> res =getNoAuth("/api/v1/usuarios/perfil", MAP_TYPE);
         assertThat(res.getStatusCode()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
@@ -59,7 +76,6 @@ class UsuarioControllerTest extends BaseIntegrationTest {
     // ---- Medios de pago ----
 
     @Test
-    @Order(3)
     void listar_medios_pago() {
         ResponseEntity<MedioPagoResponse[]> res = getWithAuth(
                 "/api/v1/usuarios/medios-pago", jwtJuan, MedioPagoResponse[].class);
@@ -69,7 +85,6 @@ class UsuarioControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    @Order(4)
     void agregar_medio_pago() {
         MedioPagoRequest req = new MedioPagoRequest();
         req.setTipo(TipoMedioPago.CUENTA_BANCARIA);
@@ -89,7 +104,6 @@ class UsuarioControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    @Order(5)
     void eliminar_medio_pago_mientras_conectado_falla() {
         // Conectar a subasta
         ConectarSubastaRequest conectar = new ConectarSubastaRequest();
@@ -107,7 +121,6 @@ class UsuarioControllerTest extends BaseIntegrationTest {
     // ---- Multas ----
 
     @Test
-    @Order(6)
     void pagar_multa_actualiza_estado_y_contador() {
         Usuario usuario = usuarioRepository.findByEmail("juan@test.com").orElseThrow();
 
@@ -118,6 +131,7 @@ class UsuarioControllerTest extends BaseIntegrationTest {
                 .fechaLimitePago(LocalDateTime.now().plusDays(3))
                 .build();
         multa = multaRepository.save(multa);
+        multaIdCreada = multa.getId();
 
         usuario.setMultasPendientes(1);
         usuarioRepository.save(usuario);
@@ -139,7 +153,6 @@ class UsuarioControllerTest extends BaseIntegrationTest {
     // ---- Métricas ----
 
     @Test
-    @Order(7)
     void obtener_metricas() {
         ResponseEntity<MetricasResponse> res = getWithAuth(
                 "/api/v1/usuarios/metricas", jwtJuan, MetricasResponse.class);
@@ -151,7 +164,6 @@ class UsuarioControllerTest extends BaseIntegrationTest {
     // ---- Participaciones ----
 
     @Test
-    @Order(8)
     void listar_participaciones() {
         ResponseEntity<ParticipacionResponse[]> res = getWithAuth(
                 "/api/v1/usuarios/participaciones", jwtJuan, ParticipacionResponse[].class);

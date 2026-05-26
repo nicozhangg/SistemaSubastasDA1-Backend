@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class IncumplimientoServiceTest extends BaseIntegrationTest {
 
     @Autowired private IncumplimientoService incumplimientoService;
@@ -22,14 +21,42 @@ class IncumplimientoServiceTest extends BaseIntegrationTest {
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private ItemRepository itemRepository;
 
+    // Entidades creadas en cada test; el @AfterEach las limpia aunque el test falle
+    private Long compraIdCreada;
+    private Long multaIdCreada;
+    private Usuario usuarioParaRestaurar;
+
+    @AfterEach
+    void cleanup() {
+        if (compraIdCreada != null) {
+            // Eliminar la multa generada como efecto lateral del servicio para esta compra
+            compraRepository.findById(compraIdCreada).ifPresent(c -> {
+                String clave = "Compra #" + c.getId();
+                multaRepository.findByUsuarioOrderByFechaGeneracionDesc(c.getUsuario())
+                        .stream()
+                        .filter(m -> m.getMotivo().contains(clave))
+                        .forEach(multaRepository::delete);
+                compraRepository.delete(c);
+            });
+            compraIdCreada = null;
+        }
+        if (multaIdCreada != null) {
+            multaRepository.deleteById(multaIdCreada);
+            multaIdCreada = null;
+        }
+        if (usuarioParaRestaurar != null) {
+            usuarioParaRestaurar.setEstado(EstadoUsuario.APROBADO);
+            usuarioRepository.save(usuarioParaRestaurar);
+            usuarioParaRestaurar = null;
+        }
+    }
+
     @Test
-    @Order(1)
     void compra_vencida_genera_multa_del_10_porciento() {
         Usuario juan = usuarioRepository.findByEmail("juan@test.com").orElseThrow();
         int multasAntes = juan.getMultasPendientes();
-        Item item = itemRepository.findAll().get(0);
+        Item item = itemRepository.findById(1L).orElseThrow();
 
-        // Crear compra con fecha límite ya vencida
         Compra compra = compraRepository.save(Compra.builder()
                 .item(item)
                 .usuario(juan)
@@ -41,6 +68,7 @@ class IncumplimientoServiceTest extends BaseIntegrationTest {
                 .estadoPago(EstadoPago.PENDIENTE)
                 .fechaLimitePago(LocalDateTime.now().minusHours(1))
                 .build());
+        compraIdCreada = compra.getId();
 
         incumplimientoService.procesarComprasVencidas();
 
@@ -59,12 +87,10 @@ class IncumplimientoServiceTest extends BaseIntegrationTest {
     }
 
     @Test
-    @Order(2)
     void compra_no_vencida_no_genera_multa() {
         Usuario maria = usuarioRepository.findByEmail("maria@test.com").orElseThrow();
-        Item item = itemRepository.findAll().get(1);
+        Item item = itemRepository.findById(2L).orElseThrow();
 
-        // Compra con plazo aún vigente
         Compra compra = compraRepository.save(Compra.builder()
                 .item(item)
                 .usuario(maria)
@@ -76,6 +102,7 @@ class IncumplimientoServiceTest extends BaseIntegrationTest {
                 .estadoPago(EstadoPago.PENDIENTE)
                 .fechaLimitePago(LocalDateTime.now().plusHours(48))
                 .build());
+        compraIdCreada = compra.getId();
 
         incumplimientoService.procesarComprasVencidas();
 
@@ -84,19 +111,19 @@ class IncumplimientoServiceTest extends BaseIntegrationTest {
     }
 
     @Test
-    @Order(3)
     void multa_vencida_bloquea_usuario_y_deriva_a_justicia() {
         Usuario maria = usuarioRepository.findByEmail("maria@test.com").orElseThrow();
         maria.setEstado(EstadoUsuario.APROBADO);
         usuarioRepository.save(maria);
+        usuarioParaRestaurar = maria;
 
-        // Crear multa con fecha límite ya vencida
-        multaRepository.save(Multa.builder()
+        Multa multa = multaRepository.save(Multa.builder()
                 .monto(new BigDecimal("5000.00"))
                 .motivo("Multa test para derivar")
                 .usuario(maria)
                 .fechaLimitePago(LocalDateTime.now().minusHours(1))
                 .build());
+        multaIdCreada = multa.getId();
 
         incumplimientoService.derivarMultasVencidas();
 
@@ -107,14 +134,9 @@ class IncumplimientoServiceTest extends BaseIntegrationTest {
         boolean hayDerivada = multas.stream()
                 .anyMatch(m -> m.getEstado() == EstadoMulta.DERIVADA_JUSTICIA);
         assertThat(hayDerivada).isTrue();
-
-        // Restaurar estado para no romper otros tests
-        mariaActualizada.setEstado(EstadoUsuario.APROBADO);
-        usuarioRepository.save(mariaActualizada);
     }
 
     @Test
-    @Order(4)
     void multa_no_vencida_no_se_deriva() {
         Usuario juan = usuarioRepository.findByEmail("juan@test.com").orElseThrow();
 
@@ -124,6 +146,7 @@ class IncumplimientoServiceTest extends BaseIntegrationTest {
                 .usuario(juan)
                 .fechaLimitePago(LocalDateTime.now().plusDays(2))
                 .build());
+        multaIdCreada = multa.getId();
 
         incumplimientoService.derivarMultasVencidas();
 

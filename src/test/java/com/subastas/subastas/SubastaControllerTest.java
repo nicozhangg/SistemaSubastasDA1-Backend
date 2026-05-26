@@ -10,7 +10,6 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class SubastaControllerTest extends BaseIntegrationTest {
 
     private String jwtJuan;
@@ -22,17 +21,23 @@ class SubastaControllerTest extends BaseIntegrationTest {
         jwtMaria = loginAndGetToken("maria@test.com", "password123");
     }
 
+    @AfterEach
+    void cleanup() {
+        // Garantizar que Juan no quede conectado si el test falla antes del desconectar inline
+        if (jwtJuan != null) {
+            postWithAuth("/api/v1/subastas/1/desconectar", jwtJuan, null, MAP_TYPE);
+        }
+    }
+
     // ---- Listar ----
 
     @Test
-    @Order(1)
     void listar_subastas_requiere_autenticacion() {
         ResponseEntity<Map<String, Object>> res =getNoAuth("/api/v1/subastas", MAP_TYPE);
         assertThat(res.getStatusCode()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
     }
 
     @Test
-    @Order(2)
     void listar_subastas_autenticado_devuelve_resultados() {
         ResponseEntity<Map<String, Object>> res =getWithAuth("/api/v1/subastas", jwtJuan, MAP_TYPE);
 
@@ -43,7 +48,6 @@ class SubastaControllerTest extends BaseIntegrationTest {
     // ---- Catálogo público ----
 
     @Test
-    @Order(3)
     void catalogo_es_publico_sin_jwt() {
         ResponseEntity<Object[]> res = rest.getForEntity("/api/v1/subastas/1/catalogo", Object[].class);
 
@@ -54,7 +58,6 @@ class SubastaControllerTest extends BaseIntegrationTest {
     // ---- Conectar / Desconectar ----
 
     @Test
-    @Order(4)
     void conectar_a_subasta_abierta_exitoso() {
         ConectarSubastaRequest req = new ConectarSubastaRequest();
         req.setMedioPagoId(1L);
@@ -69,7 +72,6 @@ class SubastaControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    @Order(5)
     void conectar_a_dos_subastas_simultaneamente_falla() {
         ConectarSubastaRequest req = new ConectarSubastaRequest();
         req.setMedioPagoId(1L);
@@ -82,21 +84,18 @@ class SubastaControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    @Order(6)
     void desconectar_sin_estar_conectado_falla() {
         ResponseEntity<Map<String, Object>> res =postWithAuth("/api/v1/subastas/1/desconectar", jwtMaria, null, MAP_TYPE);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
-    @Order(7)
     void estado_puja_sin_estar_conectado_falla() {
         ResponseEntity<Map<String, Object>> res =getWithAuth("/api/v1/subastas/1/pujas/estado", jwtMaria, MAP_TYPE);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
-    @Order(8)
     void obtener_subasta_inexistente_devuelve_404() {
         ResponseEntity<Map<String, Object>> res =getWithAuth("/api/v1/subastas/9999", jwtJuan, MAP_TYPE);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
