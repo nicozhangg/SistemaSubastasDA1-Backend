@@ -45,6 +45,17 @@ public class AuthController {
         return ResponseEntity.ok(authService.registroPaso2(request));
     }
 
+    @PostMapping("/reenviar-token")
+    public ResponseEntity<Map<String, String>> reenviarToken(@RequestBody Map<String, String> request) {
+        authService.reenviarToken(request.get("email"));
+        return ResponseEntity.ok(Map.of("mensaje", "Token reenviado exitosamente"));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<Map<String, String>> refresh(@RequestBody Map<String, String> request) {
+        return ResponseEntity.ok(authService.refreshToken(request.get("refreshToken")));
+    }
+
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));

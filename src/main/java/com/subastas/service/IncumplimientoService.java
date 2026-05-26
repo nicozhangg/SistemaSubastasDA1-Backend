@@ -66,11 +66,9 @@ public class IncumplimientoService {
                     .build();
             multaRepository.save(multa);
 
-            // Actualizar cache de multas pendientes del usuario
+            // Actualizar cache de multas pendientes del usuario de forma atómica
             Usuario usuario = compra.getUsuario();
-            long pendientes = multaRepository.countByUsuarioAndEstado(usuario, EstadoMulta.PENDIENTE);
-            usuario.setMultasPendientes((int) pendientes);
-            usuarioRepository.save(usuario);
+            usuarioRepository.actualizarMultasPendientes(usuario.getId());
 
             log.info("Multa generada: ${} para usuario {} por compra #{}", montoMulta, usuario.getEmail(), compra.getId());
         }

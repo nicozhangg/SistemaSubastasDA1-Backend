@@ -52,10 +52,12 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/registro/paso1").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/registro/paso2").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/reenviar-token").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/subastas/*/catalogo").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/items/**").permitAll()
-                // H2 console (solo localhost en dev — ver CorsConfigurationSource para prod)
-                .requestMatchers("/h2-console/**").hasRole("ADMIN")
+                // H2 console bloqueada — habilitar manualmente solo en perfil dev si necesario
+                .requestMatchers("/h2-console/**").denyAll()
                 .requestMatchers("/ws/**").permitAll()
                 // Swagger UI
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()

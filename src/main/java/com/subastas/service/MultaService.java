@@ -56,9 +56,8 @@ public class MultaService {
         multa.setEstado(EstadoMulta.PAGADA);
         multaRepository.save(multa);
 
+        usuarioRepository.actualizarMultasPendientes(usuario.getId());
         long pendientes = multaRepository.countByUsuarioAndEstado(usuario, EstadoMulta.PENDIENTE);
-        usuario.setMultasPendientes((int) pendientes);
-        usuarioRepository.save(usuario);
 
         MultaResponse response = mapToResponse(multa);
         response.setPuedeParticiparNuevamente(pendientes == 0);

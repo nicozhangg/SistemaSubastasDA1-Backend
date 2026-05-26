@@ -89,11 +89,11 @@ public class UsuarioService {
         MedioPago medioPago = medioPagoRepository.findByIdAndUsuario(medioPagoId, usuario)
                 .orElseThrow(() -> new ResourceNotFoundException("Medio de pago", medioPagoId));
 
-        // Verificar que no esté en uso en una subasta activa
-        boolean enUso = participacionRepository.existsByUsuarioAndConectadoTrue(usuario);
+        // Verificar que este medio de pago específico no esté en uso en una subasta activa
+        boolean enUso = participacionRepository.existsByMedioPagoAndConectadoTrue(medioPago);
         if (enUso) {
             throw new BusinessException(ErrorCodes.MEDIO_PAGO_EN_USO,
-                    "No podés eliminar un medio de pago mientras estás conectado a una subasta",
+                    "No podés eliminar este medio de pago porque está en uso en una subasta activa",
                     HttpStatus.CONFLICT);
         }
 
@@ -115,16 +115,11 @@ public class UsuarioService {
 
     public MetricasResponse obtenerMetricas(String email) {
         Usuario usuario = obtenerPorEmail(email);
-        var participaciones = participacionRepository.findByUsuarioOrderByFechaConexionDesc(usuario);
-        var compras = compraRepository.findByUsuarioOrderByIdDesc(usuario);
-        BigDecimal totalPagado = compras.stream()
-                .map(c -> c.getTotal() != null ? c.getTotal() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return MetricasResponse.builder()
-                .totalSubastasAsistidas(participaciones.size())
-                .totalGanadas(compras.size())
-                .totalPagado(totalPagado)
+                .totalSubastasAsistidas((int) participacionRepository.countByUsuario(usuario))
+                .totalGanadas((int) compraRepository.countByUsuario(usuario))
+                .totalPagado(compraRepository.sumTotalByUsuario(usuario))
                 .multasPendientes(usuario.getMultasPendientes())
                 .build();
     }

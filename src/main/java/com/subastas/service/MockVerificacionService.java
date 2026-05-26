@@ -43,6 +43,8 @@ public class MockVerificacionService {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("Verificación mock interrumpida para usuario {}", event.getUsuarioId());
+        } catch (Exception e) {
+            log.error("Error enviando email de registro para usuario {}: {}", event.getUsuarioId(), e.getMessage());
         }
     }
 }

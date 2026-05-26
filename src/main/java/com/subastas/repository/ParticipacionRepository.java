@@ -1,5 +1,6 @@
 package com.subastas.repository;
 
+import com.subastas.model.entity.MedioPago;
 import com.subastas.model.entity.Participacion;
 import com.subastas.model.entity.Subasta;
 import com.subastas.model.entity.Usuario;
@@ -19,6 +20,10 @@ public interface ParticipacionRepository extends JpaRepository<Participacion, Lo
     List<Participacion> findByUsuarioOrderByFechaConexionDesc(Usuario usuario);
 
     boolean existsByUsuarioAndConectadoTrue(Usuario usuario);
+
+    boolean existsByMedioPagoAndConectadoTrue(MedioPago medioPago);
+
+    long countByUsuario(Usuario usuario);
 
     List<Participacion> findBySubastaAndConectadoTrue(Subasta subasta);
 }

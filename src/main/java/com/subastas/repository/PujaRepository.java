@@ -27,8 +27,16 @@ public interface PujaRepository extends JpaRepository<Puja, Long> {
     @Query("SELECT p FROM Puja p LEFT JOIN FETCH p.usuario WHERE p.subasta = :subasta AND p.item = :item ORDER BY p.timestamp DESC")
     List<Puja> findBySubastaAndItemOrderByTimestampDesc(@Param("subasta") Subasta subasta, @Param("item") Item item);
 
+    @Query(value = "SELECT p FROM Puja p LEFT JOIN FETCH p.usuario WHERE p.subasta = :subasta AND p.item = :item ORDER BY p.timestamp DESC",
+           countQuery = "SELECT COUNT(p) FROM Puja p WHERE p.subasta = :subasta AND p.item = :item")
+    Page<Puja> findBySubastaAndItemOrderByTimestampDesc(@Param("subasta") Subasta subasta, @Param("item") Item item, Pageable pageable);
+
     List<Puja> findBySubastaAndUsuarioOrderByTimestampDesc(Subasta subasta, Usuario usuario);
 
+    Page<Puja> findBySubastaAndUsuarioOrderByTimestampDesc(Subasta subasta, Usuario usuario, Pageable pageable);
+
     List<Puja> findBySubastaAndItemAndUsuarioOrderByTimestampDesc(Subasta subasta, Item item, Usuario usuario);
+
+    Page<Puja> findBySubastaAndItemAndUsuarioOrderByTimestampDesc(Subasta subasta, Item item, Usuario usuario, Pageable pageable);
 
 }

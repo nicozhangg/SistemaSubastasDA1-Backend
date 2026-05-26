@@ -11,6 +11,7 @@ import com.subastas.model.enums.EstadoConsignacion;
 import com.subastas.repository.ConsignacionRepository;
 import com.subastas.repository.MedioPagoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,9 @@ public class ConsignacionService {
     private final ConsignacionRepository consignacionRepository;
     private final MedioPagoRepository medioPagoRepository;
 
+    @Value("${app.uploads.base-path:uploads}")
+    private String uploadsBasePath;
+
     public List<ConsignacionResponse> listar(Usuario usuario) {
         return consignacionRepository.findByUsuarioOrderByIdDesc(usuario).stream()
                 .map(this::mapToResponse)
@@ -58,9 +62,9 @@ public class ConsignacionService {
                     "Debés declarar que el bien te pertenece");
         }
 
-        if (fotos == null || fotos.size() < 6) {
+        if (fotos == null || fotos.size() < 6 || fotos.size() > 20) {
             throw new BusinessException(ErrorCodes.FOTOS_INSUFICIENTES,
-                    "Debés subir al menos 6 fotos del bien");
+                    "Debés subir entre 6 y 20 fotos del bien");
         }
 
         for (MultipartFile foto : fotos) {
@@ -102,7 +106,7 @@ public class ConsignacionService {
         for (int i = 0; i < fotos.size(); i++) {
             MultipartFile foto = fotos.get(i);
             String nombreArchivo = FileUtil.uuidFilename(foto);
-            String urlRelativa = "uploads/consignaciones/" + consignacion.getId() + "/" + nombreArchivo;
+            String urlRelativa = uploadsBasePath + "/consignaciones/" + consignacion.getId() + "/" + nombreArchivo;
             try {
                 Path destino = Paths.get(urlRelativa);
                 Files.createDirectories(destino.getParent());

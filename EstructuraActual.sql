@@ -319,6 +319,10 @@ CREATE INDEX idx_compras_estado_fecha_limite
 CREATE INDEX idx_multas_estado_fecha_limite
     ON multas (estado, fecha_limite_pago);
 
+-- existsByMedioPagoAndConectadoTrue() — validar si un medio de pago específico está en uso
+CREATE INDEX idx_participaciones_medio_pago_conectado
+    ON participaciones (medio_pago_id, conectado);
+
 -- obtenerMensajes: findByCompraOrderByTimestampAsc()
 CREATE INDEX idx_mensajes_chat_compra
     ON mensajes_chat (compra_id, timestamp);

@@ -8,8 +8,7 @@ public final class AliasUtil {
 
     public static String generarAlias(Usuario usuario) {
         if (usuario == null) return null;
-        String nombre = usuario.getNombre();
-        if (nombre == null || nombre.isBlank()) return "postor_***";
-        return "postor_" + nombre.substring(0, Math.min(3, nombre.length())) + "***";
+        if (usuario.getId() == null) return "postor_0000";
+        return "postor_" + String.format("%04x", Math.abs(usuario.getId().hashCode() % 0xFFFF));
     }
 }

@@ -15,11 +15,13 @@ public final class PujaRangeUtil {
 
     public static BigDecimal calcularMinima(Item item, Subasta subasta) {
         if (subasta == null || subasta.getCategoria().sinLimitesPuja()) return null;
+        if (item.getPrecioBase() == null) return null;
         return baseEfectiva(item).add(item.getPrecioBase().multiply(FACTOR_MIN));
     }
 
     public static BigDecimal calcularMaxima(Item item, Subasta subasta) {
         if (subasta == null || subasta.getCategoria().sinLimitesPuja()) return null;
+        if (item.getPrecioBase() == null) return null;
         return baseEfectiva(item).add(item.getPrecioBase().multiply(FACTOR_MAX));
     }
 

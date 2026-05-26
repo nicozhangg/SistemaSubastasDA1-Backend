@@ -20,11 +20,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
@@ -47,8 +49,11 @@ public class PujaService {
     private final UsuarioService usuarioService;
     private final ApplicationEventPublisher eventPublisher;
 
-    // Un lock por subasta para serializar pujas concurrentes sobre el mismo ítem
-    private final Map<Long, ReentrantLock> locksPorSubasta = new ConcurrentHashMap<>();
+    // Un lock por subasta para serializar pujas concurrentes sobre el mismo ítem.
+    // expireAfterAccess evita acumulación de locks de subastas ya cerradas.
+    private final Cache<Long, ReentrantLock> locksPorSubasta = Caffeine.newBuilder()
+            .expireAfterAccess(1, TimeUnit.HOURS)
+            .build();
 
     @Transactional
     public PujaResponse realizarPuja(Long subastaId, String email, PujaRequest request) {
@@ -69,7 +74,7 @@ public class PujaService {
 
         // tryLock sin espera: si el lock está tomado, rechazamos la puja inmediatamente
         // en lugar de encolar, porque el cliente debe esperar la confirmación de la puja en curso
-        ReentrantLock lock = locksPorSubasta.computeIfAbsent(subastaId, id -> new ReentrantLock());
+        ReentrantLock lock = locksPorSubasta.get(subastaId, id -> new ReentrantLock());
 
         if (!lock.tryLock()) {
             throw new BusinessException(ErrorCodes.PUJA_EN_PROCESO,
@@ -158,7 +163,7 @@ public class PujaService {
     }
 
     public void liberarLock(Long subastaId) {
-        locksPorSubasta.remove(subastaId);
+        locksPorSubasta.invalidate(subastaId);
     }
 
     public List<PujaResponse> obtenerHistorial(Long subastaId, Long itemId, Boolean soloPropias, String email,
@@ -167,21 +172,22 @@ public class PujaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Subasta", subastaId));
 
         List<Puja> pujas;
+        PageRequest pageable = PageRequest.of(page, size);
         if (Boolean.TRUE.equals(soloPropias)) {
             Usuario usuario = usuarioService.obtenerPorEmail(email);
             if (itemId != null) {
                 Item item = itemRepository.findById(itemId)
                         .orElseThrow(() -> new ResourceNotFoundException("Item", itemId));
-                pujas = pujaRepository.findBySubastaAndItemAndUsuarioOrderByTimestampDesc(subasta, item, usuario);
+                pujas = pujaRepository.findBySubastaAndItemAndUsuarioOrderByTimestampDesc(subasta, item, usuario, pageable).getContent();
             } else {
-                pujas = pujaRepository.findBySubastaAndUsuarioOrderByTimestampDesc(subasta, usuario);
+                pujas = pujaRepository.findBySubastaAndUsuarioOrderByTimestampDesc(subasta, usuario, pageable).getContent();
             }
         } else if (itemId != null) {
             Item item = itemRepository.findById(itemId)
                     .orElseThrow(() -> new ResourceNotFoundException("Item", itemId));
-            pujas = pujaRepository.findBySubastaAndItemOrderByTimestampDesc(subasta, item);
+            pujas = pujaRepository.findBySubastaAndItemOrderByTimestampDesc(subasta, item, pageable).getContent();
         } else {
-            pujas = pujaRepository.findBySubastaOrderByTimestampDesc(subasta, PageRequest.of(page, size)).getContent();
+            pujas = pujaRepository.findBySubastaOrderByTimestampDesc(subasta, pageable).getContent();
         }
 
         return pujas.stream()

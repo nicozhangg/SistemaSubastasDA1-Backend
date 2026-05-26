@@ -17,8 +17,10 @@ import com.subastas.model.enums.EstadoItem;
 import com.subastas.model.enums.EstadoSubasta;
 import com.subastas.model.enums.Moneda;
 import com.subastas.repository.*;
+import com.subastas.event.SubastaCerradaItemEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -44,9 +46,10 @@ public class SubastaService {
     private final MedioPagoRepository medioPagoRepository;
     private final ParticipacionRepository participacionRepository;
     private final CompraRepository compraRepository;
-    private final EmailService emailService;
     private final WebSocketService webSocketService;
     private final PujaService pujaService;
+    private final ComisionService comisionService;
+    private final ApplicationEventPublisher eventPublisher;
     private final UsuarioService usuarioService;
 
     /**
@@ -111,6 +114,11 @@ public class SubastaService {
         if (!medioPago.isVerificado()) {
             throw new BusinessException(ErrorCodes.SIN_MEDIO_PAGO_VERIFICADO,
                     "El medio de pago no está verificado", HttpStatus.FORBIDDEN);
+        }
+
+        if (subasta.getMoneda() != medioPago.getMoneda()) {
+            throw new BusinessException(ErrorCodes.ESTADO_INVALIDO,
+                    "La moneda del medio de pago no coincide con la moneda de la subasta", HttpStatus.BAD_REQUEST);
         }
 
         Participacion participacion = participacionRepository
@@ -224,13 +232,17 @@ public class SubastaService {
                         .map(Participacion::getMedioPago)
                         .orElse(null);
 
+                java.math.BigDecimal comisiones = comisionService.calcularComision(item.getMejorOferta());
+                java.math.BigDecimal costoEnvio = comisionService.calcularCostoEnvio();
+                java.math.BigDecimal total = item.getMejorOferta().add(comisiones).add(costoEnvio);
+
                 Compra compra = Compra.builder()
                         .item(item)
                         .usuario(item.getMejorPostor())
                         .montoOfertado(item.getMejorOferta())
-                        .comisiones(java.math.BigDecimal.ZERO)
-                        .costoEnvio(java.math.BigDecimal.ZERO)
-                        .total(item.getMejorOferta())
+                        .comisiones(comisiones)
+                        .costoEnvio(costoEnvio)
+                        .total(total)
                         .moneda(subasta.getMoneda())
                         .medioPago(medioPagoGanador)
                         .estadoPago(EstadoPago.PENDIENTE)
@@ -241,13 +253,17 @@ public class SubastaService {
                 item.setEstado(EstadoItem.VENDIDO);
                 itemRepository.save(item);
 
-                String desglose = String.format("Monto final: %s %s", item.getMejorOferta(), subasta.getMoneda());
-                emailService.enviarNotificacionGanador(
+                String desglose = String.format(
+                        "Monto ofertado: %s %s\nComisiones: %s %s\nCosto de envío: %s %s\nTotal: %s %s",
+                        item.getMejorOferta(), subasta.getMoneda(),
+                        comisiones, subasta.getMoneda(),
+                        costoEnvio, subasta.getMoneda(),
+                        total, subasta.getMoneda());
+                eventPublisher.publishEvent(new SubastaCerradaItemEvent(this,
                         item.getMejorPostor().getEmail(),
                         item.getMejorPostor().getNombre(),
                         item.getDescripcion(),
-                        desglose
-                );
+                        desglose));
 
                 webSocketService.broadcastAuctionClosed(subasta.getId(),
                         AuctionClosedMessage.builder()
