@@ -146,4 +146,48 @@ class AuthControllerTest extends BaseIntegrationTest {
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
+
+    // ---- Validación de input ausente (Problema #1 de auditoría) ----
+    // Estos tests FALLAN HOY porque /refresh y /reenviar-token usan Map sin @Valid.
+    // request.get("key") devuelve null → NPE o 500. Deben devolver 400.
+
+    @Test
+    void refresh_sin_campo_refreshToken_devuelve_400() {
+        ResponseEntity<Map<String, Object>> res = postNoAuthRaw(
+                "/api/v1/auth/refresh",
+                Map.of("otroCampo", "valor"),
+                MAP_TYPE);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void refresh_con_body_vacio_devuelve_400() {
+        ResponseEntity<Map<String, Object>> res = postNoAuthRaw(
+                "/api/v1/auth/refresh",
+                Map.of(),
+                MAP_TYPE);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void reenviar_token_sin_campo_email_devuelve_400() {
+        ResponseEntity<Map<String, Object>> res = postNoAuthRaw(
+                "/api/v1/auth/reenviar-token",
+                Map.of("otroCampo", "valor"),
+                MAP_TYPE);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void reenviar_token_con_email_malformado_devuelve_400() {
+        ResponseEntity<Map<String, Object>> res = postNoAuthRaw(
+                "/api/v1/auth/reenviar-token",
+                Map.of("email", "esto-no-es-un-email"),
+                MAP_TYPE);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
 }

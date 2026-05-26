@@ -37,6 +37,12 @@ class IncumplimientoServiceTest extends BaseIntegrationTest {
                         .filter(m -> m.getMotivo().contains(clave))
                         .forEach(multaRepository::delete);
                 compraRepository.delete(c);
+                // Sincronizar el contador tras borrar multas para no contaminar tests posteriores
+                usuarioRepository.findById(c.getUsuario().getId()).ifPresent(u -> {
+                    long pendientes = multaRepository.countByUsuarioAndEstado(u, EstadoMulta.PENDIENTE);
+                    u.setMultasPendientes((int) pendientes);
+                    usuarioRepository.save(u);
+                });
             });
             compraIdCreada = null;
         }
@@ -152,5 +158,42 @@ class IncumplimientoServiceTest extends BaseIntegrationTest {
 
         Multa noAfectada = multaRepository.findById(multa.getId()).orElseThrow();
         assertThat(noAfectada.getEstado()).isEqualTo(EstadoMulta.PENDIENTE);
+    }
+
+    // ---- Idempotencia del scheduler (Problema #2 de auditoría) ----
+    // FALLA HOY: sin flag de idempotencia, la segunda llamada vuelve a procesar
+    // la compra (ya marcada INCUMPLIDO) y genera una multa duplicada.
+
+    @Test
+    void procesarComprasVencidas_dos_veces_no_genera_multa_duplicada() {
+        Usuario juan = usuarioRepository.findByEmail("juan@test.com").orElseThrow();
+        Item item = itemRepository.findById(1L).orElseThrow();
+
+        Compra compra = compraRepository.save(Compra.builder()
+                .item(item)
+                .usuario(juan)
+                .montoOfertado(new BigDecimal("50000.00"))
+                .comisiones(BigDecimal.ZERO)
+                .costoEnvio(BigDecimal.ZERO)
+                .total(new BigDecimal("50000.00"))
+                .moneda(Moneda.ARS)
+                .estadoPago(EstadoPago.PENDIENTE)
+                .fechaLimitePago(LocalDateTime.now().minusHours(1))
+                .build());
+        compraIdCreada = compra.getId();
+
+        incumplimientoService.procesarComprasVencidas();
+        // Segunda llamada simula un scheduler solapado (race condition)
+        incumplimientoService.procesarComprasVencidas();
+
+        long multasParaEstaCompra = multaRepository
+                .findByUsuarioOrderByFechaGeneracionDesc(juan)
+                .stream()
+                .filter(m -> m.getMotivo().contains("Compra #" + compra.getId()))
+                .count();
+
+        assertThat(multasParaEstaCompra)
+                .as("Dos ejecuciones del scheduler no deben generar multas duplicadas")
+                .isEqualTo(1L);
     }
 }
