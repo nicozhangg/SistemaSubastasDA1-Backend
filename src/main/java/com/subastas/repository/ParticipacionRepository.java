@@ -5,8 +5,11 @@ import com.subastas.model.entity.Participacion;
 import com.subastas.model.entity.Subasta;
 import com.subastas.model.entity.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,4 +29,17 @@ public interface ParticipacionRepository extends JpaRepository<Participacion, Lo
     long countByUsuario(Usuario usuario);
 
     List<Participacion> findBySubastaAndConectadoTrue(Subasta subasta);
+
+    List<Participacion> findByUsuarioAndFechaConexionBetweenOrderByFechaConexionDesc(
+            Usuario usuario, LocalDateTime desde, LocalDateTime hasta);
+
+    List<Participacion> findByUsuarioAndFechaConexionAfterOrderByFechaConexionDesc(
+            Usuario usuario, LocalDateTime desde);
+
+    List<Participacion> findByUsuarioAndFechaConexionBeforeOrderByFechaConexionDesc(
+            Usuario usuario, LocalDateTime hasta);
+
+    /** Para métricas: cuántas participaciones por categoría de subasta */
+    @Query("SELECT s.categoria, COUNT(p) FROM Participacion p JOIN p.subasta s WHERE p.usuario = :usuario GROUP BY s.categoria")
+    List<Object[]> countByUsuarioGroupByCategoria(@Param("usuario") Usuario usuario);
 }

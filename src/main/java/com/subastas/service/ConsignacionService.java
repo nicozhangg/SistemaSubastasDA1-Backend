@@ -4,6 +4,8 @@ import com.subastas.exception.BusinessException;
 import com.subastas.exception.ErrorCodes;
 import com.subastas.exception.ResourceNotFoundException;
 import com.subastas.model.dto.response.ConsignacionResponse;
+import com.subastas.model.dto.response.PolizaResponse;
+import com.subastas.model.dto.response.UbicacionResponse;
 import com.subastas.model.entity.*;
 import com.subastas.model.enums.EstadoConsignacion;
 import com.subastas.repository.ConsignacionRepository;
@@ -150,6 +152,42 @@ public class ConsignacionService {
         response.setMensaje("Condiciones rechazadas. El bien será devuelto con cargo de retiro.");
         response.setGastosEstimados(GASTOS_RETIRO);
         return response;
+    }
+
+    public UbicacionResponse obtenerUbicacion(Long consignacionId, Usuario usuario) {
+        Consignacion consignacion = consignacionRepository.findByIdAndUsuario(consignacionId, usuario)
+                .orElseThrow(() -> new ResourceNotFoundException("Consignación", consignacionId));
+        Deposito deposito = consignacion.getDeposito();
+        if (deposito == null) {
+            throw new ResourceNotFoundException("El bien aún no tiene depósito asignado");
+        }
+        return UbicacionResponse.builder()
+                .depositoNombre(deposito.getNombre())
+                .depositoDireccion(deposito.getDireccion())
+                .latitud(deposito.getLatitud())
+                .longitud(deposito.getLongitud())
+                .fechaIngreso(deposito.getFechaIngreso())
+                .estadoFisico(deposito.getEstadoFisico())
+                .build();
+    }
+
+    public PolizaResponse obtenerPoliza(Long consignacionId, Usuario usuario) {
+        Consignacion consignacion = consignacionRepository.findByIdAndUsuario(consignacionId, usuario)
+                .orElseThrow(() -> new ResourceNotFoundException("Consignación", consignacionId));
+        Poliza poliza = consignacion.getPoliza();
+        if (poliza == null) {
+            throw new ResourceNotFoundException("El bien aún no tiene póliza asignada");
+        }
+        return PolizaResponse.builder()
+                .polizaId(poliza.getId())
+                .aseguradoraNombre(poliza.getAseguradoraNombre())
+                .aseguradoraContacto(poliza.getAseguradoraContacto())
+                .valorAsegurado(poliza.getValorAsegurado())
+                .prima(poliza.getPrima())
+                .vigenciaDesde(poliza.getVigenciaDesde())
+                .vigenciaHasta(poliza.getVigenciaHasta())
+                .bienesCubiertos(poliza.getBienesCubiertos())
+                .build();
     }
 
     private Consignacion obtenerConsignacionParaDecision(Long consignacionId, Usuario usuario) {

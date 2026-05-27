@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Repository
@@ -38,5 +39,11 @@ public interface PujaRepository extends JpaRepository<Puja, Long> {
     List<Puja> findBySubastaAndItemAndUsuarioOrderByTimestampDesc(Subasta subasta, Item item, Usuario usuario);
 
     Page<Puja> findBySubastaAndItemAndUsuarioOrderByTimestampDesc(Subasta subasta, Item item, Usuario usuario, Pageable pageable);
+
+    @Query("SELECT COUNT(DISTINCT p.item) FROM Puja p WHERE p.subasta = :subasta AND p.usuario = :usuario")
+    long countItemsDistinctBySubastaAndUsuario(@Param("subasta") Subasta subasta, @Param("usuario") Usuario usuario);
+
+    @Query("SELECT COALESCE(SUM(p.monto), 0) FROM Puja p WHERE p.subasta = :subasta AND p.usuario = :usuario")
+    BigDecimal sumMontoBySubastaAndUsuario(@Param("subasta") Subasta subasta, @Param("usuario") Usuario usuario);
 
 }

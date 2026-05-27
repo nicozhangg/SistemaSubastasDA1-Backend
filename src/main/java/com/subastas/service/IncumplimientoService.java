@@ -50,8 +50,14 @@ public class IncumplimientoService {
         log.info("Procesando {} compra(s) con pago vencido", vencidas.size());
 
         for (Compra compra : vencidas) {
-            compra.setEstadoPago(EstadoPago.INCUMPLIDO);
-            compraRepository.save(compra);
+            // Re-verificar estado para evitar procesar dos veces si el scheduler se solapó
+            Compra fresca = compraRepository.findById(compra.getId()).orElse(null);
+            if (fresca == null || fresca.getEstadoPago() != EstadoPago.PENDIENTE) {
+                continue;
+            }
+            fresca.setEstadoPago(EstadoPago.INCUMPLIDO);
+            compraRepository.save(fresca);
+            compra = fresca;
 
             BigDecimal montoMulta = compra.getMontoOfertado()
                     .multiply(PORCENTAJE_MULTA)

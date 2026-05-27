@@ -1,6 +1,8 @@
 package com.subastas.controller;
 
 import com.subastas.model.dto.response.ConsignacionResponse;
+import com.subastas.model.dto.response.PolizaResponse;
+import com.subastas.model.dto.response.UbicacionResponse;
 import com.subastas.model.entity.Usuario;
 import com.subastas.service.ConsignacionService;
 import com.subastas.service.UsuarioService;
@@ -67,5 +69,21 @@ public class ConsignacionController {
             @PathVariable Long id) {
         Usuario usuario = usuarioService.obtenerPorEmail(userDetails.getUsername());
         return ResponseEntity.ok(consignacionService.rechazarCondiciones(id, usuario));
+    }
+
+    @GetMapping("/{id}/ubicacion")
+    public ResponseEntity<UbicacionResponse> obtenerUbicacion(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long id) {
+        Usuario usuario = usuarioService.obtenerPorEmail(userDetails.getUsername());
+        return ResponseEntity.ok(consignacionService.obtenerUbicacion(id, usuario));
+    }
+
+    @GetMapping("/{id}/poliza")
+    public ResponseEntity<PolizaResponse> obtenerPoliza(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long id) {
+        Usuario usuario = usuarioService.obtenerPorEmail(userDetails.getUsername());
+        return ResponseEntity.ok(consignacionService.obtenerPoliza(id, usuario));
     }
 }

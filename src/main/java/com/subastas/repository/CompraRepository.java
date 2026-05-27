@@ -32,4 +32,15 @@ public interface CompraRepository extends JpaRepository<Compra, Long> {
     BigDecimal sumTotalByUsuarioAndMedioPagoAndEstadoPago(@Param("usuario") Usuario usuario,
                                                           @Param("medioPago") MedioPago medioPago,
                                                           @Param("estadoPago") EstadoPago estadoPago);
+
+    @Query("SELECT COALESCE(SUM(c.montoOfertado), 0) FROM Compra c WHERE c.usuario = :usuario")
+    BigDecimal sumMontoOfertadoByUsuario(@Param("usuario") Usuario usuario);
+
+    @Query("SELECT COALESCE(SUM(c.total), 0) FROM Compra c WHERE c.usuario = :usuario AND c.estadoPago = :estadoPago")
+    BigDecimal sumTotalByUsuarioAndEstadoPago(@Param("usuario") Usuario usuario,
+                                             @Param("estadoPago") EstadoPago estadoPago);
+
+    @Query("SELECT COUNT(c) FROM Compra c WHERE c.usuario = :usuario AND c.item.subasta.id = :subastaId")
+    long countGanadasByUsuarioAndSubastaId(@Param("usuario") Usuario usuario,
+                                           @Param("subastaId") Long subastaId);
 }

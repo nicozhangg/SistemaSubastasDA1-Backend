@@ -4,19 +4,23 @@ import com.subastas.model.dto.request.MedioPagoRequest;
 import com.subastas.model.dto.request.PagarMultaRequest;
 import com.subastas.model.dto.response.CompraResponse;
 import com.subastas.model.dto.response.MedioPagoResponse;
+import com.subastas.model.dto.response.MetricasResponse;
 import com.subastas.model.dto.response.MultaResponse;
+import com.subastas.model.dto.response.ParticipacionHistorialResponse;
 import com.subastas.model.dto.response.UsuarioResponse;
 import com.subastas.service.CompraService;
 import com.subastas.service.MultaService;
 import com.subastas.service.UsuarioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -80,6 +84,22 @@ public class UsuarioController {
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long compraId) {
         return ResponseEntity.ok(compraService.obtenerCompra(compraId, userDetails.getUsername()));
+    }
+
+    @GetMapping("/metricas")
+    public ResponseEntity<MetricasResponse> obtenerMetricas(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(usuarioService.obtenerMetricas(userDetails.getUsername()));
+    }
+
+    @GetMapping("/participaciones")
+    public ResponseEntity<List<ParticipacionHistorialResponse>> obtenerParticipaciones(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) String resultado,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime hasta) {
+        return ResponseEntity.ok(
+                usuarioService.obtenerParticipaciones(userDetails.getUsername(), resultado, desde, hasta));
     }
 
 }
