@@ -4,7 +4,6 @@ import com.subastas.BaseIntegrationTest;
 import com.subastas.model.dto.request.ConectarSubastaRequest;
 import com.subastas.model.dto.request.MedioPagoRequest;
 import com.subastas.model.dto.request.PagarMultaRequest;
-import com.subastas.model.dto.response.CompraResponse;
 import com.subastas.model.dto.response.MedioPagoResponse;
 import com.subastas.model.dto.response.MultaResponse;
 import com.subastas.model.dto.response.UsuarioResponse;

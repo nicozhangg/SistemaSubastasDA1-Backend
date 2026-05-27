@@ -52,7 +52,6 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final MockVerificacionService mockVerificacionService;
-    private final EmailService emailService;
 
     @Value("${app.uploads.base-path:uploads}")
     private String uploadsBasePath;
