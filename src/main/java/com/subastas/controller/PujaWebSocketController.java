@@ -5,12 +5,12 @@ import com.subastas.model.dto.request.PujaRequest;
 import com.subastas.model.dto.websocket.BidRejectedMessage;
 import com.subastas.model.dto.websocket.PujaWebSocketRequest;
 import com.subastas.service.PujaService;
-import com.subastas.service.WebSocketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
@@ -27,7 +27,7 @@ import java.security.Principal;
 public class PujaWebSocketController {
 
     private final PujaService pujaService;
-    private final WebSocketService webSocketService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @MessageMapping("/subastas/{subastaId}/pujar")
     public void pujar(@DestinationVariable Long subastaId,
@@ -44,10 +44,11 @@ public class PujaWebSocketController {
         if (wsRequest.getItemId() == null || wsRequest.getMonto() == null
                 || wsRequest.getMedioPagoId() == null
                 || wsRequest.getMonto().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            webSocketService.sendBidRejected(email, BidRejectedMessage.builder()
-                    .motivo("VALIDACION")
-                    .mensaje("Datos de puja incompletos o inválidos")
-                    .build());
+            messagingTemplate.convertAndSendToUser(email, "/queue/pujas",
+                    BidRejectedMessage.builder()
+                            .motivo("VALIDACION")
+                            .mensaje("Datos de puja incompletos o inválidos")
+                            .build());
             return;
         }
 
@@ -60,16 +61,18 @@ public class PujaWebSocketController {
             pujaService.realizarPuja(subastaId, email, request);
 
         } catch (BusinessException e) {
-            webSocketService.sendBidRejected(email, BidRejectedMessage.builder()
-                    .motivo(e.getCodigo())
-                    .mensaje(e.getMessage())
-                    .build());
+            messagingTemplate.convertAndSendToUser(email, "/queue/pujas",
+                    BidRejectedMessage.builder()
+                            .motivo(e.getCodigo())
+                            .mensaje(e.getMessage())
+                            .build());
         } catch (Exception e) {
             log.error("Error inesperado procesando puja WebSocket de {} en subasta {}: {}", email, subastaId, e.getMessage(), e);
-            webSocketService.sendBidRejected(email, BidRejectedMessage.builder()
-                    .motivo("ERROR_INTERNO")
-                    .mensaje("No se pudo procesar la puja")
-                    .build());
+            messagingTemplate.convertAndSendToUser(email, "/queue/pujas",
+                    BidRejectedMessage.builder()
+                            .motivo("ERROR_INTERNO")
+                            .mensaje("No se pudo procesar la puja")
+                            .build());
         }
     }
 }

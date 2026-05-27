@@ -5,8 +5,6 @@ import com.subastas.model.enums.EstadoSubasta;
 import com.subastas.model.enums.Moneda;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.Formula;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,7 +59,4 @@ public class Subasta {
     @OneToMany(mappedBy = "subasta", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<Item> items = new ArrayList<>();
-
-    @Formula("(SELECT COUNT(*) FROM items i WHERE i.subasta_id = id)")
-    private int totalItems;
 }

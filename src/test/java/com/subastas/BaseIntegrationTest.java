@@ -81,23 +81,8 @@ public abstract class BaseIntegrationTest {
         return rawRest().exchange(baseUrl(url), HttpMethod.PATCH, new HttpEntity<>(body, authHeaders(jwt)), type);
     }
 
-    protected <T> ResponseEntity<T> deleteWithAuth(String url, String jwt, Class<T> type) {
-        return rest.exchange(url, HttpMethod.DELETE, new HttpEntity<>(authHeaders(jwt)), type);
-    }
-
     protected <T> ResponseEntity<T> postNoAuth(String url, Object body, Class<T> type) {
         return rest.exchange(url, HttpMethod.POST, new HttpEntity<>(body, jsonHeaders()), type);
-    }
-
-    /**
-     * POST sin auth usando JDK HttpClient (evita problemas de HttpURLConnection con 401).
-     */
-    protected <T> ResponseEntity<T> postNoAuthRaw(String url, Object body, Class<T> type) {
-        return rawRest().exchange(baseUrl(url), HttpMethod.POST, new HttpEntity<>(body, jsonHeaders()), type);
-    }
-
-    protected <T> ResponseEntity<T> getNoAuth(String url, Class<T> type) {
-        return rest.exchange(url, HttpMethod.GET, new HttpEntity<>(jsonHeaders()), type);
     }
 
     protected <T> ResponseEntity<T> getWithAuth(String url, String jwt, ParameterizedTypeReference<T> type) {

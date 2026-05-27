@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+
 import java.util.stream.Collectors;
 
 /**
@@ -32,6 +33,7 @@ public class ChatService {
     private final CompraRepository compraRepository;
     private final MensajeChatRepository mensajeChatRepository;
     private final UsuarioService usuarioService;
+    private final CompraService compraService;
 
     @Transactional(readOnly = true)
     public List<MensajeChatResponse> obtenerMensajes(Long compraId, String email) {
@@ -100,7 +102,7 @@ public class ChatService {
                 .usuario(usuario)
                 .build());
 
-        return mapCompraToResponse(compra);
+        return compraService.mapToResponse(compra);
     }
 
     private Compra obtenerCompraDelUsuario(Long compraId, Usuario usuario) {
@@ -115,34 +117,6 @@ public class ChatService {
                 .timestamp(m.getTimestamp())
                 .remitente(m.getRemitente())
                 .leido(m.isLeido())
-                .build();
-    }
-
-    private CompraResponse mapCompraToResponse(Compra compra) {
-        return CompraResponse.builder()
-                .compraId(compra.getId())
-                .item(CompraResponse.ItemInfo.builder()
-                        .id(compra.getItem().getId())
-                        .descripcion(compra.getItem().getDescripcion())
-                        .numeroPieza(compra.getItem().getNumeroPieza())
-                        .build())
-                .montoOfertado(compra.getMontoOfertado())
-                .comisiones(compra.getComisiones())
-                .costoEnvio(compra.getCostoEnvio())
-                .total(compra.getTotal())
-                .moneda(compra.getMoneda())
-                .medioPago(compra.getMedioPago() != null
-                        ? CompraResponse.MedioPagoInfo.builder()
-                            .id(compra.getMedioPago().getId())
-                            .alias(compra.getMedioPago().getAlias())
-                            .tipo(compra.getMedioPago().getTipo().name())
-                            .build()
-                        : null)
-                .estadoPago(compra.getEstadoPago())
-                .direccionEnvio(compra.getDireccionEnvio())
-                .modalidadEntrega(compra.getModalidadEntrega())
-                .coberturaSeguroActiva(compra.isCoberturaSeguroActiva())
-                .fechaLimitePago(compra.getFechaLimitePago())
                 .build();
     }
 }

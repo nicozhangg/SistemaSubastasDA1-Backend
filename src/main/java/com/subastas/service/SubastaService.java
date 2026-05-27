@@ -9,6 +9,7 @@ import com.subastas.model.dto.response.EstadoPujaResponse;
 import com.subastas.model.dto.response.SubastaResponse;
 import com.subastas.model.dto.websocket.AuctionClosedMessage;
 import com.subastas.model.entity.*;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.subastas.model.enums.EstadoPago;
 import com.subastas.util.AliasUtil;
 import com.subastas.util.PujaRangeUtil;
@@ -19,8 +20,6 @@ import com.subastas.model.enums.Moneda;
 import com.subastas.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,7 +48,7 @@ public class SubastaService {
     private final MedioPagoRepository medioPagoRepository;
     private final ParticipacionRepository participacionRepository;
     private final CompraRepository compraRepository;
-    private final WebSocketService webSocketService;
+    private final SimpMessagingTemplate messagingTemplate;
     private final PujaService pujaService;
     private final EmailService emailService;
     private final UsuarioService usuarioService;
@@ -58,8 +57,8 @@ public class SubastaService {
      * Filtra las subastas que el usuario puede ver según su categoría.
      * Un usuario PLATA ve subastas COMUN, ESPECIAL y PLATA, pero no ORO ni PLATINO.
      */
-    public Page<SubastaResponse> listar(EstadoSubasta estado, Categoria categoria,
-                                        Moneda moneda, int page, String email) {
+    public List<SubastaResponse> listar(EstadoSubasta estado, Categoria categoria,
+                                        Moneda moneda, String email) {
         Usuario usuario = usuarioService.obtenerPorEmail(email);
 
         List<Categoria> categoriasAccesibles = Arrays.stream(Categoria.values())
@@ -67,8 +66,10 @@ public class SubastaService {
                 .collect(Collectors.toList());
 
         return subastaRepository
-                .findAccesibles(estado, categoria, moneda, categoriasAccesibles, PageRequest.of(page, 20))
-                .map(this::mapToResponse);
+                .findAccesibles(estado, categoria, moneda, categoriasAccesibles)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     public SubastaResponse obtener(Long id, String email) {
@@ -269,7 +270,7 @@ public class SubastaService {
                         item.getDescripcion(),
                         desglose);
 
-                webSocketService.broadcastAuctionClosed(subasta.getId(),
+                messagingTemplate.convertAndSend("/topic/subastas/" + subasta.getId(),
                         AuctionClosedMessage.builder()
                                 .itemId(item.getId())
                                 .ganadorAlias(AliasUtil.generarAlias(item.getMejorPostor()))
@@ -279,7 +280,7 @@ public class SubastaService {
                 item.setEstado(EstadoItem.DISPONIBLE);
                 itemRepository.save(item);
 
-                webSocketService.broadcastAuctionClosed(subasta.getId(),
+                messagingTemplate.convertAndSend("/topic/subastas/" + subasta.getId(),
                         AuctionClosedMessage.builder()
                                 .itemId(item.getId())
                                 .ganadorAlias(null)
@@ -321,7 +322,7 @@ public class SubastaService {
                 .estado(s.getEstado())
                 .ubicacion(s.getUbicacion())
                 .rematador(rematadorInfo)
-                .totalItems(s.getTotalItems())
+                .totalItems((int) itemRepository.countBySubasta(s))
                 .build();
     }
 

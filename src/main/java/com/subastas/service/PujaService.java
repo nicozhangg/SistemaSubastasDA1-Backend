@@ -16,6 +16,7 @@ import com.subastas.util.PujaRangeUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,7 +44,7 @@ public class PujaService {
     private final MedioPagoRepository medioPagoRepository;
     private final ParticipacionRepository participacionRepository;
     private final UsuarioService usuarioService;
-    private final WebSocketService webSocketService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // Un lock por subasta para serializar pujas concurrentes sobre el mismo ítem.
     private final ConcurrentHashMap<Long, ReentrantLock> locksPorSubasta = new ConcurrentHashMap<>();
@@ -136,17 +137,19 @@ public class PujaService {
         String alias = AliasUtil.generarAlias(usuario);
 
         // Notificar a todos los conectados del nuevo estado, y confirmar al postor
-        webSocketService.broadcastBidUpdated(subastaId, BidUpdatedMessage.builder()
-                .itemId(item.getId())
-                .nuevaMejorOferta(nuevaMejorOferta)
-                .mejorPostorAlias(alias)
-                .pujaMinima(pujaMinimaBroadcast)
-                .pujaMaxima(pujaMaximaBroadcast)
-                .build());
-        webSocketService.sendBidConfirmed(usuario.getEmail(), BidConfirmedMessage.builder()
-                .pujaId(puja.getId())
-                .monto(puja.getMonto())
-                .build());
+        messagingTemplate.convertAndSend("/topic/subastas/" + subastaId,
+                BidUpdatedMessage.builder()
+                        .itemId(item.getId())
+                        .nuevaMejorOferta(nuevaMejorOferta)
+                        .mejorPostorAlias(alias)
+                        .pujaMinima(pujaMinimaBroadcast)
+                        .pujaMaxima(pujaMaximaBroadcast)
+                        .build());
+        messagingTemplate.convertAndSendToUser(usuario.getEmail(), "/queue/pujas",
+                BidConfirmedMessage.builder()
+                        .pujaId(puja.getId())
+                        .monto(puja.getMonto())
+                        .build());
 
         return PujaResponse.builder()
                 .pujaId(puja.getId())

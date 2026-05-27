@@ -13,7 +13,6 @@ import com.subastas.service.PujaService;
 import com.subastas.service.SubastaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -38,20 +37,13 @@ public class SubastaController {
 
     /** Devuelve solo las subastas accesibles según la categoría del usuario autenticado. */
     @GetMapping
-    public ResponseEntity<Map<String, Object>> listar(
+    public ResponseEntity<List<SubastaResponse>> listar(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false) EstadoSubasta estado,
             @RequestParam(required = false) Categoria categoria,
-            @RequestParam(required = false) Moneda moneda,
-            @RequestParam(defaultValue = "0") int page) {
+            @RequestParam(required = false) Moneda moneda) {
 
-        Page<SubastaResponse> result = subastaService.listar(estado, categoria, moneda, page, userDetails.getUsername());
-
-        return ResponseEntity.ok(Map.of(
-                "data", result.getContent(),
-                "total", result.getTotalElements(),
-                "page", result.getNumber()
-        ));
+        return ResponseEntity.ok(subastaService.listar(estado, categoria, moneda, userDetails.getUsername()));
     }
 
     @GetMapping("/{id}")

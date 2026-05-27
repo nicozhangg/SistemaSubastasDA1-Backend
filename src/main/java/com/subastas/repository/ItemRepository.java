@@ -27,4 +27,6 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM Item i WHERE i.id = :id")
     Optional<Item> findByIdWithLock(@Param("id") Long id);
+
+    long countBySubasta(Subasta subasta);
 }

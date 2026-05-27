@@ -4,6 +4,7 @@ import com.subastas.BaseIntegrationTest;
 import com.subastas.model.dto.request.ConectarSubastaRequest;
 import com.subastas.model.dto.request.PujaRequest;
 import com.subastas.model.dto.response.ConectarSubastaResponse;
+import com.subastas.model.dto.response.SubastaResponse;
 import com.subastas.model.entity.Item;
 import com.subastas.model.entity.Subasta;
 import com.subastas.model.enums.EstadoSubasta;
@@ -52,10 +53,10 @@ class SubastaControllerTest extends BaseIntegrationTest {
 
     @Test
     void listar_subastas_autenticado_devuelve_resultados() {
-        ResponseEntity<Map<String, Object>> res =getWithAuth("/api/v1/subastas", jwtJuan, MAP_TYPE);
+        ResponseEntity<SubastaResponse[]> res = getWithAuth("/api/v1/subastas", jwtJuan, SubastaResponse[].class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(res.getBody()).containsKey("data");
+        assertThat(res.getBody()).isNotEmpty();
     }
 
     // ---- Catálogo público ----

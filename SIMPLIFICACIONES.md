@@ -90,9 +90,29 @@ El cálculo se hace inline. `ComisionService.java` fue eliminado.
 
 ---
 
-## Resultado
+## 8. Eliminación de WebSocketService wrapper
 
-- **Archivos eliminados:** 8 (3 eventos, 4 DTOs, 1 servicio)
+**Qué había:** Un `@Service` (`WebSocketService`) que envolvía `SimpMessagingTemplate` con 4 métodos de una línea cada uno, solo para nombrar los destinos STOMP.
+
+**Por qué se eliminó:** No agregaba lógica ni mejoraba la testabilidad. Era un intermediario vacío entre los servicios y Spring Messaging.
+
+**Cómo quedó:** `PujaService`, `SubastaService` y `PujaWebSocketController` inyectan `SimpMessagingTemplate` directamente y llaman `convertAndSend`/`convertAndSendToUser` con el destino inline. `WebSocketService.java` eliminado.
+
+---
+
+## 9. Eliminación de paginación en listado de subastas
+
+**Qué había:** `SubastaService.listar()` devolvía `Page<SubastaResponse>` con `PageRequest.of(page, 20)`. El controller respondía `{"data": [...], "total": N, "page": 0}`.
+
+**Por qué se eliminó:** El TP tiene 2-3 subastas de prueba. La paginación agregaba complejidad en el repositorio, el servicio, el controller y los tests sin ningún beneficio real.
+
+**Cómo quedó:** `listar()` devuelve `List<SubastaResponse>` directamente. El controller retorna el array sin wrapper. `SubastaRepository.findAccesibles()` sin `Pageable`.
+
+---
+
+## Resultado acumulado
+
+- **Archivos eliminados:** 10 (3 eventos, 4 DTOs, 1 `ComisionService`, 1 `WebSocketService`, endpoints varios)
 - **Dependencias eliminadas:** 2 (`tika-core`, `caffeine`)
 - **Endpoints eliminados:** 6 (`/refresh`, `/reenviar-token`, `/metricas`, `/participaciones`, `/consignaciones/{id}/ubicacion`, `/consignaciones/{id}/poliza`)
-- **Tests:** 53 pasan, 0 nuevos fallos introducidos
+- **Tests:** 53 pasan, 0 fallos

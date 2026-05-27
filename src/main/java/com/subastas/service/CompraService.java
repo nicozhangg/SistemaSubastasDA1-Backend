@@ -17,10 +17,12 @@ public class CompraService {
 
     public CompraResponse obtenerCompra(Long compraId, String email) {
         Usuario usuario = usuarioService.obtenerPorEmail(email);
-
         Compra compra = compraRepository.findByIdAndUsuario(compraId, usuario)
                 .orElseThrow(() -> new ResourceNotFoundException("Compra", compraId));
+        return mapToResponse(compra);
+    }
 
+    public CompraResponse mapToResponse(Compra compra) {
         return CompraResponse.builder()
                 .compraId(compra.getId())
                 .item(CompraResponse.ItemInfo.builder()
