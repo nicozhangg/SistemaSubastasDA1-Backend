@@ -81,16 +81,16 @@ class SeguridadTest extends BaseIntegrationTest {
 
     @Test
     @Order(9)
-    void item_detalle_sin_jwt_devuelve_200() {
+    void item_detalle_sin_jwt_es_rechazado() {
         ResponseEntity<Map<String, Object>> res = getNoAuth("/api/v1/items/1", MAP_TYPE);
-        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getStatusCode()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
     }
 
     @Test
     @Order(10)
-    void imagenes_item_sin_jwt_devuelve_200() {
+    void imagenes_item_sin_jwt_es_rechazado() {
         ResponseEntity<Object[]> res = rest.getForEntity("/api/v1/items/1/imagenes", Object[].class);
-        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getStatusCode()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
     }
 
     // ---- JWT inválido → rechazado ----

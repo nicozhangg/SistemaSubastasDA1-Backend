@@ -53,7 +53,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/registro/paso2").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/subastas/*/catalogo").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/items/**").permitAll()
                 // H2 console bloqueada — habilitar manualmente solo en perfil dev si necesario
                 .requestMatchers("/h2-console/**").denyAll()
                 .requestMatchers("/ws/**").permitAll()
