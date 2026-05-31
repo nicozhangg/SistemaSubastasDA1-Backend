@@ -1,6 +1,8 @@
 import React from 'react';
 import { Image, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants';
 
 type Props = {
@@ -19,13 +21,26 @@ export default function AuctionImageHeader({
   onBack,
 }: Props) {
   const [fullscreen, setFullscreen] = React.useState(false);
+  const insets = useSafeAreaInsets();
+
+  const dynamicTop = insets.top > 0 ? insets.top + 8 : 12;
 
   return (
     <>
       <View style={[styles.wrap, { height }]}>
         <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
 
-        <Pressable style={styles.backBtn} onPress={onBack} hitSlop={8}>
+        {/* Real high-fidelity Linear Gradient Overlay */}
+        <LinearGradient
+          colors={['rgba(0, 0, 0, 0.45)', 'rgba(0, 0, 0, 0.15)', 'transparent']}
+          style={styles.gradient}
+        />
+
+        <Pressable 
+          style={[styles.backBtn, { top: dynamicTop }]} 
+          onPress={onBack} 
+          hitSlop={8}
+        >
           <Ionicons name="chevron-back" size={22} color={Colors.black} />
         </Pressable>
 
@@ -72,9 +87,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  gradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 90,
+  },
   backBtn: {
     position: 'absolute',
-    top: 12,
     left: 16,
     width: 36,
     height: 36,
@@ -82,6 +103,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 15,
   },
   dotsRow: {
     position: 'absolute',

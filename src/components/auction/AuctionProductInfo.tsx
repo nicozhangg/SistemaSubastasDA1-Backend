@@ -8,7 +8,8 @@ type Props = {
   sellerName: string;
   sellerAvatarColor: string;
   status: string;
-  categories: string[];
+  categories?: string[];
+  lotNumber?: string;
   titleSize?: number;
 };
 
@@ -18,6 +19,7 @@ export default function AuctionProductInfo({
   sellerAvatarColor,
   status,
   categories,
+  lotNumber = '#029',
   titleSize = FontSize.xxxl,
 }: Props) {
   return (
@@ -37,12 +39,10 @@ export default function AuctionProductInfo({
       </Text>
 
       <View style={styles.tagsRow}>
-        <Text style={styles.metaBold}>Categorías: </Text>
-        {categories.map((cat) => (
-          <View key={cat} style={styles.tag}>
-            <Text style={styles.tagText}>{cat}</Text>
-          </View>
-        ))}
+        <Text style={styles.metaBold}>Lote: </Text>
+        <View style={styles.tag}>
+          <Text style={styles.tagText}>{lotNumber}</Text>
+        </View>
       </View>
     </>
   );
@@ -57,53 +57,51 @@ const styles = StyleSheet.create({
   sellerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   sellerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: 10,
   },
   sellerInitials: {
     fontFamily: Fonts.soraBold,
-    fontSize: FontSize.xs,
+    fontSize: FontSize.md, // Increased to md (14px)
     color: Colors.white,
   },
   sellerName: {
     fontFamily: Fonts.sora,
-    fontSize: FontSize.sm,
+    fontSize: FontSize.base, // Increased to base (16px)
     color: Colors.white,
   },
   metaLine: {
     fontFamily: Fonts.sora,
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md, // Increased to md (14px)
     color: Colors.white,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   metaBold: {
     fontFamily: Fonts.soraBold,
+    fontSize: FontSize.md, // Increased to md (14px)
     color: Colors.white,
   },
   tagsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
     marginBottom: 4,
   },
   tag: {
     backgroundColor: 'rgba(255,255,255,0.18)',
     borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginRight: 6,
-    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
   tagText: {
     fontFamily: Fonts.soraBold,
-    fontSize: FontSize.xs,
+    fontSize: FontSize.md, // Increased to md (14px) to match "Estado" and look highly readable
     color: Colors.white,
   },
 });
