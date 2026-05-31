@@ -12,14 +12,12 @@ import { Colors, Fonts, FontSize } from '../../constants';
 type Props = {
   isLoggedIn: boolean;
   onIngresar?: () => void;
-  onMenuPress?: () => void;
   onChatPress?: () => void;
 };
 
 export default function HomeHeader({
   isLoggedIn,
   onIngresar,
-  onMenuPress,
   onChatPress,
 }: Props) {
   return (
@@ -48,13 +46,6 @@ export default function HomeHeader({
 
         {isLoggedIn ? (
           <View style={styles.actions}>
-            <Pressable
-              style={styles.iconBtn}
-              onPress={onMenuPress}
-              hitSlop={8}
-            >
-              <Ionicons name="menu" size={22} color={Colors.black} />
-            </Pressable>
             <Pressable
               style={styles.iconBtn}
               onPress={onChatPress}

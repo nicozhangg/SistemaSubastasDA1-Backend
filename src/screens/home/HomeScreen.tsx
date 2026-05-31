@@ -47,7 +47,6 @@ export default function HomeScreen() {
       <HomeHeader
         isLoggedIn={isAuthenticated}
         onIngresar={logout}
-        onMenuPress={() => navigation.getParent()?.navigate('Profile')}
         onChatPress={() => navigation.navigate('ChatList')}
       />
 
