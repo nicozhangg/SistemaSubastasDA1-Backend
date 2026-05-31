@@ -17,6 +17,7 @@
       "bundleIdentifier": "com.bidup.app"
     },
     "android": {
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/adaptive-icon.png",
         "backgroundColor": "#1B2045"
