@@ -1,5 +1,5 @@
-import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -31,8 +31,30 @@ export default function HomeScreen() {
   const navigation = useNavigation<HomeNav>();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const logout = useAuthStore((s) => s.logout);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const showPrice = isAuthenticated;
+
+  const filteredCategories = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return MOCK_HOME_CATEGORIES;
+    }
+
+    return MOCK_HOME_CATEGORIES
+      .map((category) => ({
+        ...category,
+        items: category.items.filter((item) => {
+          const searchText = [category.name, item.title, item.price, item.timeRemaining]
+            .join(' ')
+            .toLowerCase();
+
+          return searchText.includes(normalizedQuery);
+        }),
+      }))
+      .filter((category) => category.items.length > 0);
+  }, [searchQuery]);
 
   const openAuction = (itemId: string) => {
     navigation.getParent()?.getParent()?.navigate('AuctionDetail', {
@@ -46,6 +68,8 @@ export default function HomeScreen() {
         isLoggedIn={isAuthenticated}
         onIngresar={logout}
         onChatPress={() => navigation.navigate('ChatList')}
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
       />
 
       <ConsignPromoBanner onPress={() => navigation.navigate('UploadItem')} />
@@ -55,14 +79,23 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {MOCK_HOME_CATEGORIES.map((category) => (
-          <CategorySection
-            key={category.id}
-            category={category}
-            showPrice={showPrice}
-            onItemPress={openAuction}
-          />
-        ))}
+        {filteredCategories.length > 0 ? (
+          filteredCategories.map((category) => (
+            <CategorySection
+              key={category.id}
+              category={category}
+              showPrice={showPrice}
+              onItemPress={openAuction}
+            />
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>No encontramos resultados</Text>
+            <Text style={styles.emptyText}>
+              Probá con otro nombre de artículo o categoría.
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -80,5 +113,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 10,
     paddingBottom: 16,
+  },
+  emptyState: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.black,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.cardTime,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

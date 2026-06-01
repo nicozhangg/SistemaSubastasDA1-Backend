@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -21,12 +21,31 @@ export default function LoginScreen() {
   const login = useAuthStore((s) => s.login);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [touched, setTouched] = useState({
+    username: false,
+    password: false,
+  });
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  const usernameValid = username.trim().length > 0;
+  const passwordValid = password.trim().length > 0;
+  const isFormValid = useMemo(
+    () => usernameValid && passwordValid,
+    [usernameValid, passwordValid]
+  );
 
   const handleContinue = () => {
+    setSubmitAttempted(true);
+    setTouched({ username: true, password: true });
+
+    if (!isFormValid) {
+      return;
+    }
+
     login(
       {
         id: '1',
-        email: username || 'user@bidup.com',
+        email: username.trim(),
         firstName: 'Usuario',
         lastName: 'Demo',
         dni: '',
@@ -55,13 +74,21 @@ export default function LoginScreen() {
         value={username}
         onChangeText={setUsername}
         autoCapitalize="none"
+        onBlur={() => setTouched((state) => ({ ...state, username: true }))}
       />
+      {(submitAttempted || touched.username) && !usernameValid ? (
+        <Text style={styles.errorText}>El usuario es obligatorio.</Text>
+      ) : null}
       <BidUpTextField
         placeholder="Contraseña"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
+        onBlur={() => setTouched((state) => ({ ...state, password: true }))}
       />
+      {(submitAttempted || touched.password) && !passwordValid ? (
+        <Text style={styles.errorText}>La contraseña es obligatoria.</Text>
+      ) : null}
 
       <View style={styles.recoverRow}>
         <Text style={styles.recoverPrefix}>¿Olvidaste tu contraseña? </Text>
@@ -71,7 +98,11 @@ export default function LoginScreen() {
       </View>
 
       <View style={styles.spacer} />
-      <PrimaryButton label="Continuar" onPress={handleContinue} />
+      <PrimaryButton
+        label="Continuar"
+        onPress={handleContinue}
+        disabled={!isFormValid}
+      />
     </AuthScreen>
   );
 }
@@ -103,5 +134,13 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSize.sm,
     color: Colors.black,
+  },
+  errorText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.xs,
+    color: '#FF3B30',
+    marginTop: -6,
+    marginBottom: 8,
+    lineHeight: 16,
   },
 });

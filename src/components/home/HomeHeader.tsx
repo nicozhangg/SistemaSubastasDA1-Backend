@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -14,13 +14,19 @@ type Props = {
   isLoggedIn: boolean;
   onIngresar?: () => void;
   onChatPress?: () => void;
+  searchValue: string;
+  onSearchChange: (value: string) => void;
 };
 
 export default function HomeHeader({
   isLoggedIn,
   onIngresar,
   onChatPress,
+  searchValue,
+  onSearchChange,
 }: Props) {
+  const [isFocused, setIsFocused] = useState(false);
+
   return (
     <View style={styles.wrap}>
       <View style={styles.topRow}>
@@ -29,18 +35,21 @@ export default function HomeHeader({
         <View style={styles.searchWrap}>
           <TextInput
             style={styles.search}
-            placeholder="Encontrá los mejores artículos"
+            placeholder={isFocused ? '' : 'Encontrá los mejores artículos'}
             placeholderTextColor={Colors.searchPlaceholder}
-            editable={false}
+            value={searchValue}
+            onChangeText={onSearchChange}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
-          {isLoggedIn ? (
-            <Ionicons
-              name="search"
-              size={18}
-              color={Colors.searchPlaceholder}
-              style={styles.searchIcon}
-            />
-          ) : null}
+          <Ionicons
+            name="search"
+            size={18}
+            color={Colors.searchPlaceholder}
+            style={styles.searchIcon}
+          />
         </View>
 
         {isLoggedIn ? (
