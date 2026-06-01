@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -42,7 +42,17 @@ const CONDITION_OPTIONS = [
   { value: 'for_parts', label: 'Para repuestos' },
 ];
 
+const CURRENCY_OPTIONS = [
+  { value: 'ars', label: 'Pesos argentinos' },
+  { value: 'usd', label: 'Dólares' },
+];
+
 const COMMISSION_PERCENT = 8;
+
+function formatPrice(amount: string, currency: string | null) {
+  const prefix = currency === 'usd' ? 'US$' : '$';
+  return `${prefix}${amount}`;
+}
 
 export default function UploadItemScreen() {
   const navigation = useNavigation<Nav>();
@@ -54,44 +64,32 @@ export default function UploadItemScreen() {
   const [category, setCategory] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [condition, setCondition] = useState<string | null>(null);
+  const [currency, setCurrency] = useState<string | null>(null);
   const [suggestedPrice, setSuggestedPrice] = useState('');
   const [photos, setPhotos] = useState(createEmptyPhotoSlots);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const handleConfirm = useCallback(() => {
     const photoCount = photos.filter(Boolean).length;
 
-    if (!name.trim()) {
-      Alert.alert('Subasta', 'Ingresá el nombre del artículo.');
-      return;
-    }
-    if (!category) {
-      Alert.alert('Subasta', 'Seleccioná una categoría.');
-      return;
-    }
-    if (!description.trim()) {
-      Alert.alert('Subasta', 'Agregá una descripción.');
-      return;
-    }
-    if (!condition) {
-      Alert.alert('Subasta', 'Seleccioná el estado del artículo.');
-      return;
-    }
-    if (!suggestedPrice.trim()) {
-      Alert.alert('Subasta', 'Ingresá el precio base sugerido.');
-      return;
-    }
-    if (photoCount < MIN_CONSIGNMENT_PHOTOS) {
-      Alert.alert(
-        'Fotos',
-        `Debés adjuntar al menos ${MIN_CONSIGNMENT_PHOTOS} fotos del artículo.`
-      );
+    setSubmitAttempted(true);
+
+    if (
+      !name.trim() ||
+      !category ||
+      !description.trim() ||
+      !condition ||
+      !currency ||
+      !suggestedPrice.trim() ||
+      photoCount < MIN_CONSIGNMENT_PHOTOS
+    ) {
       return;
     }
 
     addSubmission({
       title: name.trim(),
       imageUrl: '',
-      currentPrice: `$${suggestedPrice.trim()}`,
+      currentPrice: formatPrice(suggestedPrice.trim(), currency),
       status: 'soon',
     });
 
@@ -102,11 +100,25 @@ export default function UploadItemScreen() {
     category,
     description,
     condition,
+    currency,
     suggestedPrice,
     photos,
     addSubmission,
     returnTo,
   ]);
+
+  const handleSuggestedPriceChange = useCallback((text: string) => {
+    setSuggestedPrice(text.replace(/\D/g, ''));
+  }, []);
+
+  const hasMissingName = !name.trim();
+  const hasMissingCategory = !category;
+  const hasMissingDescription = !description.trim();
+  const hasMissingCondition = !condition;
+  const hasMissingCurrency = !currency;
+  const hasMissingPrice = !suggestedPrice.trim();
+  const hasMissingPhotos = photos.filter(Boolean).length < MIN_CONSIGNMENT_PHOTOS;
+  const showErrors = submitAttempted;
 
   const footer = useMemo(
     () => <PrimaryButton label="Confirmar" onPress={handleConfirm} />,
@@ -131,29 +143,53 @@ export default function UploadItemScreen() {
           value={name}
           onChangeText={setName}
         />
+        {showErrors && hasMissingName ? (
+          <Text style={styles.fieldError}>El nombre del artículo es obligatorio.</Text>
+        ) : null}
         <FormSelect
           placeholder="Categoría"
           options={CATEGORY_OPTIONS}
           value={category}
           onValueChange={setCategory}
         />
+        {showErrors && hasMissingCategory ? (
+          <Text style={styles.fieldError}>Seleccioná una categoría.</Text>
+        ) : null}
         <FormTextArea
           placeholder="Descripción"
           value={description}
           onChangeText={setDescription}
         />
+        {showErrors && hasMissingDescription ? (
+          <Text style={styles.fieldError}>La descripción es obligatoria.</Text>
+        ) : null}
         <FormSelect
           placeholder="Estado"
           options={CONDITION_OPTIONS}
           value={condition}
           onValueChange={setCondition}
         />
+        {showErrors && hasMissingCondition ? (
+          <Text style={styles.fieldError}>Seleccioná el estado del artículo.</Text>
+        ) : null}
+        <FormSelect
+          placeholder="Moneda"
+          options={CURRENCY_OPTIONS}
+          value={currency}
+          onValueChange={setCurrency}
+        />
+        {showErrors && hasMissingCurrency ? (
+          <Text style={styles.fieldError}>Seleccioná una moneda.</Text>
+        ) : null}
         <ConsignmentFormField
           placeholder="Precio base sugerido"
           value={suggestedPrice}
-          onChangeText={setSuggestedPrice}
+          onChangeText={handleSuggestedPriceChange}
           keyboardType="numeric"
         />
+        {showErrors && hasMissingPrice ? (
+          <Text style={styles.fieldError}>Ingresá un precio base sugerido.</Text>
+        ) : null}
         <Text style={styles.commission}>
           Se cobrará una comisión del {COMMISSION_PERCENT}% del valor final.
         </Text>
@@ -161,6 +197,11 @@ export default function UploadItemScreen() {
 
       <View style={styles.photosCard}>
         <PhotoUploadGrid photos={photos} onChange={setPhotos} />
+        {showErrors && hasMissingPhotos ? (
+          <Text style={styles.fieldError}>
+            Debés adjuntar al menos {MIN_CONSIGNMENT_PHOTOS} fotos.
+          </Text>
+        ) : null}
       </View>
     </ConsignmentScreenShell>
   );
@@ -208,6 +249,14 @@ const styles = StyleSheet.create({
     color: Colors.cardTime,
     marginTop: -4,
     marginBottom: 8,
+    lineHeight: 16,
+  },
+  fieldError: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.xs,
+    color: '#FF3B30',
+    marginTop: -6,
+    marginBottom: 10,
     lineHeight: 16,
   },
   photosCard: {

@@ -3,7 +3,7 @@ import { MockAuctionItem } from '../data/mockActivity';
 
 interface MyAuctionsStore {
   submissions: MockAuctionItem[];
-  addSubmission: (item: Omit<MockAuctionItem, 'id' | 'moderationStatus'>) => void;
+  addSubmission: (item: Omit<MockAuctionItem, 'id' | 'moderationStatus' | 'timeRemaining'>) => void;
 }
 
 export const useMyAuctionsStore = create<MyAuctionsStore>((set) => ({
