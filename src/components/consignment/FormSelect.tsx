@@ -4,7 +4,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -44,45 +43,34 @@ export default function FormSelect({
       </Pressable>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableWithoutFeedback onPress={() => setOpen(false)}>
-          <View style={styles.overlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.menu}>
-                {options.map((option, index) => {
-                  const isSelected = option.value === value;
-                  return (
-                    <View key={option.value}>
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.item,
-                          pressed && styles.itemPressed,
-                        ]}
-                        onPress={() => {
-                          onValueChange(option.value);
-                          setOpen(false);
-                        }}
-                      >
-                        <View style={styles.check}>
-                          {isSelected ? (
-                            <Ionicons name="checkmark" size={16} color={Colors.accent} />
-                          ) : null}
-                        </View>
-                        <Text
-                          style={[styles.itemText, isSelected && styles.itemTextActive]}
-                        >
-                          {option.label}
-                        </Text>
-                      </Pressable>
-                      {index < options.length - 1 ? (
-                        <View style={styles.separator} />
+        <Pressable style={styles.overlay} onPress={() => setOpen(false)}>
+          <Pressable style={styles.menu} onPress={() => {}}>
+            {options.map((option, index) => {
+              const isSelected = option.value === value;
+              return (
+                <View key={option.value}>
+                  <Pressable
+                    style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
+                    onPress={() => {
+                      onValueChange(option.value);
+                      setOpen(false);
+                    }}
+                  >
+                    <View style={styles.check}>
+                      {isSelected ? (
+                        <Ionicons name="checkmark" size={16} color={Colors.accent} />
                       ) : null}
                     </View>
-                  );
-                })}
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
+                    <Text style={[styles.itemText, isSelected && styles.itemTextActive]}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                  {index < options.length - 1 ? <View style={styles.separator} /> : null}
+                </View>
+              );
+            })}
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );

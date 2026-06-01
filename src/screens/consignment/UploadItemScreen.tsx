@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,6 +33,11 @@ const CONDITION_OPTIONS = [
   { value: 'for_parts', label: 'Para repuestos' },
 ];
 
+const CURRENCY_OPTIONS = [
+  { value: 'ars', label: 'Pesos argentinos' },
+  { value: 'usd', label: 'Dólares' },
+];
+
 const COMMISSION_PERCENT = 8;
 
 export default function UploadItemScreen() {
@@ -42,42 +47,94 @@ export default function UploadItemScreen() {
   const [category, setCategory] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [condition, setCondition] = useState<string | null>(null);
+  const [currency, setCurrency] = useState<string | null>(null);
   const [suggestedPrice, setSuggestedPrice] = useState('');
   const [photos, setPhotos] = useState(createEmptyPhotoSlots);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
+
+  const resetForm = useCallback(() => {
+    setName('');
+    setCategory(null);
+    setDescription('');
+    setCondition(null);
+    setCurrency(null);
+    setSuggestedPrice('');
+    setPhotos(createEmptyPhotoSlots());
+    setSubmitAttempted(false);
+  }, []);
+
+  const goHome = useCallback(() => {
+    navigation.popToTop();
+  }, [navigation]);
 
   const handleConfirm = useCallback(() => {
     const photoCount = photos.filter(Boolean).length;
+    const missingFields: string[] = [];
+
+    setSubmitAttempted(true);
 
     if (!name.trim()) {
-      Alert.alert('Subasta', 'Ingresá el nombre del artículo.');
-      return;
+      missingFields.push('nombre del artículo');
     }
     if (!category) {
-      Alert.alert('Subasta', 'Seleccioná una categoría.');
-      return;
+      missingFields.push('categoría');
     }
     if (!description.trim()) {
-      Alert.alert('Subasta', 'Agregá una descripción.');
-      return;
+      missingFields.push('descripción');
     }
     if (!condition) {
-      Alert.alert('Subasta', 'Seleccioná el estado del artículo.');
-      return;
+      missingFields.push('estado del artículo');
+    }
+    if (!currency) {
+      missingFields.push('moneda');
     }
     if (!suggestedPrice.trim()) {
-      Alert.alert('Subasta', 'Ingresá el precio base sugerido.');
-      return;
+      missingFields.push('precio base sugerido');
     }
     if (photoCount < MIN_CONSIGNMENT_PHOTOS) {
-      Alert.alert(
-        'Fotos',
-        `Debés adjuntar al menos ${MIN_CONSIGNMENT_PHOTOS} fotos del artículo.`
-      );
+      missingFields.push(`al menos ${MIN_CONSIGNMENT_PHOTOS} fotos`);
+    }
+
+    if (missingFields.length > 0) {
       return;
     }
 
-    navigation.navigate('ItemUploaded');
-  }, [navigation, name, category, description, condition, suggestedPrice, photos]);
+    setSuccessVisible(true);
+  }, [
+    goHome,
+    name,
+    category,
+    description,
+    condition,
+    currency,
+    suggestedPrice,
+    photos,
+    resetForm,
+  ]);
+
+  const handleSuggestedPriceChange = useCallback((text: string) => {
+    setSuggestedPrice(text.replace(/\D/g, ''));
+  }, []);
+
+  const hasMissingName = !name.trim();
+  const hasMissingCategory = !category;
+  const hasMissingDescription = !description.trim();
+  const hasMissingCondition = !condition;
+  const hasMissingCurrency = !currency;
+  const hasMissingPrice = !suggestedPrice.trim();
+  const hasMissingPhotos = photos.filter(Boolean).length < MIN_CONSIGNMENT_PHOTOS;
+  const showErrors = submitAttempted;
+
+  const handleStartOver = useCallback(() => {
+    setSuccessVisible(false);
+    resetForm();
+  }, [resetForm]);
+
+  const handleGoHome = useCallback(() => {
+    setSuccessVisible(false);
+    goHome();
+  }, [goHome]);
 
   const footer = useMemo(
     () => <PrimaryButton label="Confirmar" onPress={handleConfirm} />,
@@ -102,29 +159,53 @@ export default function UploadItemScreen() {
           value={name}
           onChangeText={setName}
         />
+        {showErrors && hasMissingName ? (
+          <Text style={styles.fieldError}>El nombre del artículo es obligatorio.</Text>
+        ) : null}
         <FormSelect
           placeholder="Categoría"
           options={CATEGORY_OPTIONS}
           value={category}
           onValueChange={setCategory}
         />
+        {showErrors && hasMissingCategory ? (
+          <Text style={styles.fieldError}>Seleccioná una categoría.</Text>
+        ) : null}
         <FormTextArea
           placeholder="Descripción"
           value={description}
           onChangeText={setDescription}
         />
+        {showErrors && hasMissingDescription ? (
+          <Text style={styles.fieldError}>La descripción es obligatoria.</Text>
+        ) : null}
         <FormSelect
           placeholder="Estado"
           options={CONDITION_OPTIONS}
           value={condition}
           onValueChange={setCondition}
         />
+        {showErrors && hasMissingCondition ? (
+          <Text style={styles.fieldError}>Seleccioná el estado del artículo.</Text>
+        ) : null}
+        <FormSelect
+          placeholder="Moneda"
+          options={CURRENCY_OPTIONS}
+          value={currency}
+          onValueChange={setCurrency}
+        />
+        {showErrors && hasMissingCurrency ? (
+          <Text style={styles.fieldError}>Seleccioná una moneda.</Text>
+        ) : null}
         <ConsignmentFormField
           placeholder="Precio base sugerido"
           value={suggestedPrice}
-          onChangeText={setSuggestedPrice}
+          onChangeText={handleSuggestedPriceChange}
           keyboardType="numeric"
         />
+        {showErrors && hasMissingPrice ? (
+          <Text style={styles.fieldError}>Ingresá un precio base sugerido.</Text>
+        ) : null}
         <Text style={styles.commission}>
           Se cobrará una comisión del {COMMISSION_PERCENT}% del valor final.
         </Text>
@@ -132,7 +213,31 @@ export default function UploadItemScreen() {
 
       <View style={styles.photosCard}>
         <PhotoUploadGrid photos={photos} onChange={setPhotos} />
+        {showErrors && hasMissingPhotos ? (
+          <Text style={styles.fieldError}>
+            Debés adjuntar al menos {MIN_CONSIGNMENT_PHOTOS} fotos.
+          </Text>
+        ) : null}
       </View>
+
+      <Modal transparent visible={successVisible} animationType="fade" onRequestClose={() => setSuccessVisible(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setSuccessVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Artículo subastado</Text>
+            <Text style={styles.modalMessage}>
+              Tu artículo fue enviado correctamente y ya quedó listo para revisión.
+            </Text>
+            <View style={styles.modalActions}>
+              <Pressable style={[styles.modalButton, styles.modalButtonSecondary]} onPress={handleGoHome}>
+                <Text style={[styles.modalButtonText, styles.modalButtonTextSecondary]}>Volver al inicio</Text>
+              </Pressable>
+              <Pressable style={[styles.modalButton, styles.modalButtonPrimary]} onPress={handleStartOver}>
+                <Text style={styles.modalButtonText}>Subastar otro articulo</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ConsignmentScreenShell>
   );
 }
@@ -181,6 +286,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 16,
   },
+  fieldError: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.xs,
+    color: '#FF3B30',
+    marginTop: -6,
+    marginBottom: 10,
+    lineHeight: 16,
+  },
   photosCard: {
     backgroundColor: Colors.white,
     borderRadius: 12,
@@ -190,5 +303,62 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 3,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(27, 32, 69, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    padding: 20,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontFamily: Fonts.title,
+    fontSize: FontSize.xl,
+    color: Colors.black,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.base,
+    color: Colors.cardTime,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  modalActions: {
+    gap: 10,
+  },
+  modalButton: {
+    minHeight: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  modalButtonPrimary: {
+    backgroundColor: Colors.accent,
+  },
+  modalButtonSecondary: {
+    backgroundColor: Colors.surface,
+  },
+  modalButtonText: {
+    fontFamily: Fonts.bodyBold,
+    fontSize: FontSize.base,
+    color: Colors.white,
+  },
+  modalButtonTextSecondary: {
+    color: Colors.textPrimary,
   },
 });
