@@ -8,7 +8,8 @@ import { Colors, Fonts, FontSize } from '../constants';
 
 import HomeStack from './HomeStack';
 import ProfileStack from './ProfileStack';
-import { MyBidsScreen, MyAuctionsScreen } from '../screens/activity';
+import MyAuctionsStack from './MyAuctionsStack';
+import { MyBidsScreen } from '../screens/activity';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -66,7 +67,7 @@ export default function MainNavigator() {
       />
       <Tab.Screen
         name="MyAuctions"
-        component={MyAuctionsScreen}
+        component={MyAuctionsStack}
         options={{ tabBarLabel: 'Mis Subastas' }}
       />
       <Tab.Screen

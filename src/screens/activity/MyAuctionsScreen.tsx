@@ -1,51 +1,90 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Colors, Fonts, FontSize } from '../../constants';
-import { useAuthStore } from '../../stores';
+import { useAuthStore, useMyAuctionsStore } from '../../stores';
 import HomeHeader from '../../components/home/HomeHeader';
+import ConsignPromoBanner from '../../components/home/ConsignPromoBanner';
 import {
   ActivityItemCard,
+  ActivityBadgeType,
   ActivitySectionHeader,
   ActivityToolbar,
   DropdownFilter,
   DropdownOption,
 } from '../../components/activity';
 import { MOCK_AUCTIONS, MockAuctionItem } from '../../data/mockActivity';
+import type { MyAuctionsStackParamList } from '../../types';
 
 const FILTER_OPTIONS: DropdownOption[] = [
   { value: 'all', label: 'Todas mis Subastas' },
-  { value: 'canceled', label: 'Canceladas' },
+  { value: 'pending', label: 'Pendientes' },
+  { value: 'approved_pending_lot', label: 'Sin lote' },
+  { value: 'published', label: 'Publicadas' },
+  { value: 'rejected', label: 'Rechazadas' },
   { value: 'finished', label: 'Finalizadas' },
 ];
 
+type Nav = StackNavigationProp<MyAuctionsStackParamList, 'MyAuctionsMain'>;
+
+function getModerationBadge(
+  moderationStatus: MockAuctionItem['moderationStatus']
+): ActivityBadgeType {
+  if (moderationStatus === 'pending') return 'pending';
+  if (moderationStatus === 'approved_pending_lot') return 'approved_pending_lot';
+  if (moderationStatus === 'published') return 'published';
+  if (moderationStatus === 'rejected') return 'rejected';
+  return 'pending';
+}
+
 export default function MyAuctionsScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<Nav>();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const logout = useAuthStore((s) => s.logout);
+  const userSubmissions = useMyAuctionsStore((s) => s.submissions);
 
   const [filter, setFilter] = useState('all');
 
-  const filteredAuctions = MOCK_AUCTIONS.filter((auction) => {
+  const allAuctions = useMemo(
+    () => [...userSubmissions, ...MOCK_AUCTIONS],
+    [userSubmissions]
+  );
+
+  const filteredAuctions = allAuctions.filter((auction) => {
     if (filter === 'all') return true;
-    if (filter === 'canceled') return auction.status === 'canceled';
+    if (filter === 'pending') return auction.moderationStatus === 'pending';
+    if (filter === 'approved_pending_lot') {
+      return auction.moderationStatus === 'approved_pending_lot';
+    }
+    if (filter === 'published') return auction.moderationStatus === 'published';
+    if (filter === 'rejected') return auction.moderationStatus === 'rejected';
     if (filter === 'finished') return auction.status === 'finished';
     return true;
   });
 
   const goHome = () => {
-    navigation.navigate('Home');
+    navigation.getParent()?.navigate('Home');
   };
 
   const handleChatPress = () => {
-    navigation.navigate('Home', { screen: 'ChatList' });
+    navigation.getParent()?.navigate('Home', { screen: 'ChatList' });
   };
 
-  const handleItemPress = (auctionId: string) => {
-    navigation.navigate('AuctionDetail', { auctionId });
+  const handleCreateAuction = () => {
+    navigation.navigate('UploadItem', { returnTo: 'myAuctions' });
+  };
+
+  const handleItemPress = (auction: MockAuctionItem) => {
+    if (auction.moderationStatus !== 'published') {
+      return;
+    }
+    navigation.getParent()?.getParent()?.navigate('AuctionDetail', {
+      auctionId: auction.id,
+    });
   };
 
   const renderAuctionItem = ({ item }: { item: MockAuctionItem }) => (
@@ -54,9 +93,18 @@ export default function MyAuctionsScreen() {
       imageUrl={item.imageUrl}
       timeRemaining={item.timeRemaining}
       primaryPrice={item.currentPrice}
-      secondaryPrice="Puja máxima"
-      badgeType={item.status}
-      onPress={() => handleItemPress(item.id)}
+      secondaryPrice={
+        item.moderationStatus === 'published' ? 'Puja máxima' : undefined
+      }
+      badgeType={getModerationBadge(item.moderationStatus)}
+      statusNote={
+        item.moderationStatus === 'rejected' && item.rejectionReason
+          ? `Motivo: ${item.rejectionReason}`
+          : item.moderationStatus === 'approved_pending_lot'
+            ? 'Pendiente de subir a un lote'
+            : undefined
+      }
+      onPress={() => handleItemPress(item)}
     />
   );
 
@@ -67,6 +115,8 @@ export default function MyAuctionsScreen() {
         onIngresar={logout}
         onChatPress={handleChatPress}
       />
+
+      <ConsignPromoBanner onPress={handleCreateAuction} />
 
       <ActivitySectionHeader title="Mis subastas" />
 

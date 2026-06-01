@@ -9,5 +9,6 @@ export type CatalogCardItem = {
 export type CatalogCategory = {
   id: string;
   name: string;
+  description: string;
   items: CatalogCardItem[];
 };

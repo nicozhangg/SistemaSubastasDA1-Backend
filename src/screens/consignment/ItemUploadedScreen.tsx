@@ -1,19 +1,33 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { PrimaryButton } from '../../components/auth';
 import { ConsignmentScreenShell } from '../../components/consignment';
 import ItemUploadedIllustration from '../../components/consignment/ItemUploadedIllustration';
 import { Colors, Fonts, FontSize } from '../../constants';
-import type { HomeStackParamList } from '../../types';
+import type { HomeStackParamList, MyAuctionsStackParamList } from '../../types';
 
-type Nav = StackNavigationProp<HomeStackParamList, 'ItemUploaded'>;
+type ItemUploadedRoute = RouteProp<
+  HomeStackParamList | MyAuctionsStackParamList,
+  'ItemUploaded'
+>;
+type Nav = StackNavigationProp<
+  HomeStackParamList | MyAuctionsStackParamList,
+  'ItemUploaded'
+>;
 
 export default function ItemUploadedScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<ItemUploadedRoute>();
+  const returnTo = route.params?.returnTo ?? 'home';
 
-  const goHome = () => {
+  const goBack = () => {
+    if (returnTo === 'myAuctions') {
+      navigation.popToTop();
+      return;
+    }
     navigation.popToTop();
   };
 
@@ -21,16 +35,24 @@ export default function ItemUploadedScreen() {
     <ConsignmentScreenShell
       contentStyle={styles.content}
       footer={
-        <PrimaryButton label="Accedé a tu subasta" onPress={goHome} />
+        <PrimaryButton
+          label={
+            returnTo === 'myAuctions'
+              ? 'Ver mis subastas'
+              : 'Accedé a tu subasta'
+          }
+          onPress={goBack}
+        />
       }
     >
       <View style={styles.card}>
-        <Text style={styles.title}>Artículo subido</Text>
+        <Text style={styles.title}>Solicitud enviada</Text>
 
         <ItemUploadedIllustration />
 
         <Text style={styles.message}>
-          Añadimos tu artículo a nuestro catálogo y pronto será subastado.
+          Recibimos tu artículo. Un administrador debe revisarlo y confirmarlo
+          antes de que quede publicado en el catálogo.
         </Text>
       </View>
     </ConsignmentScreenShell>

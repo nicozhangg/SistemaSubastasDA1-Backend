@@ -19,6 +19,8 @@ export interface MockAuctionItem {
   timeRemaining: string;
   currentPrice: string;
   status: 'soon' | 'finished' | 'canceled';
+  moderationStatus: 'pending' | 'approved_pending_lot' | 'published' | 'rejected';
+  rejectionReason?: string;
 }
 
 const WATCH_IMAGE = 'https://images.unsplash.com/photo-1523170335258-f5ed11844cae?w=400&q=80';
@@ -70,6 +72,7 @@ export const MOCK_AUCTIONS: MockAuctionItem[] = [
     timeRemaining: '20H 53M',
     currentPrice: '$350.800',
     status: 'soon',
+    moderationStatus: 'published',
   },
   {
     id: 'auc-2',
@@ -78,6 +81,7 @@ export const MOCK_AUCTIONS: MockAuctionItem[] = [
     timeRemaining: '00H 00M',
     currentPrice: '$350.800',
     status: 'finished',
+    moderationStatus: 'published',
   },
   {
     id: 'auc-3',
@@ -86,5 +90,25 @@ export const MOCK_AUCTIONS: MockAuctionItem[] = [
     timeRemaining: '00H 00M',
     currentPrice: '$350.800',
     status: 'canceled',
+    moderationStatus: 'rejected',
+    rejectionReason: 'Las fotos no muestran el estado real del artículo.',
+  },
+  {
+    id: 'auc-4',
+    title: 'Cámara Polaroid SX-70',
+    imageUrl: WATCH_IMAGE,
+    timeRemaining: 'En revisión',
+    currentPrice: '$45.000',
+    status: 'soon',
+    moderationStatus: 'pending',
+  },
+  {
+    id: 'auc-5',
+    title: 'Vinilo The Beatles — Abbey Road',
+    imageUrl: WATCH_IMAGE,
+    timeRemaining: 'Sin lote asignado',
+    currentPrice: '$18.500',
+    status: 'soon',
+    moderationStatus: 'approved_pending_lot',
   },
 ];

@@ -157,11 +157,12 @@ export type RootStackParamList = {
 
 export type HomeStackParamList = {
   HomeMain: undefined;
-  UploadItem: undefined;
-  ItemUploaded: undefined;
+  UploadItem: { returnTo?: 'home' | 'myAuctions' } | undefined;
+  ItemUploaded: { returnTo?: 'home' | 'myAuctions' } | undefined;
   ChatList: undefined;
   ChatDetail: { conversationId: string };
   LoginWall: undefined;
+  LotDetail: { lotId: string };
 };
 
 export type ProfileStackParamList = {
@@ -192,4 +193,10 @@ export type MainTabParamList = {
   MyBids: undefined;
   MyAuctions: undefined;
   Profile: undefined;
+};
+
+export type MyAuctionsStackParamList = {
+  MyAuctionsMain: undefined;
+  UploadItem: { returnTo?: 'home' | 'myAuctions' } | undefined;
+  ItemUploaded: { returnTo?: 'home' | 'myAuctions' } | undefined;
 };

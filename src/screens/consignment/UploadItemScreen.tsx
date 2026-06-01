@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { PrimaryButton } from '../../components/auth';
@@ -14,9 +15,17 @@ import {
   createEmptyPhotoSlots,
 } from '../../components/consignment';
 import { Colors, Fonts, FontSize } from '../../constants';
-import type { HomeStackParamList } from '../../types';
+import { useMyAuctionsStore } from '../../stores';
+import type { HomeStackParamList, MyAuctionsStackParamList } from '../../types';
 
-type Nav = StackNavigationProp<HomeStackParamList, 'UploadItem'>;
+type UploadRoute = RouteProp<
+  HomeStackParamList | MyAuctionsStackParamList,
+  'UploadItem'
+>;
+type Nav = StackNavigationProp<
+  HomeStackParamList | MyAuctionsStackParamList,
+  'UploadItem'
+>;
 
 const CATEGORY_OPTIONS = [
   { value: 'collectibles', label: 'Coleccionables' },
@@ -37,6 +46,9 @@ const COMMISSION_PERCENT = 8;
 
 export default function UploadItemScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<UploadRoute>();
+  const addSubmission = useMyAuctionsStore((s) => s.addSubmission);
+  const returnTo = route.params?.returnTo ?? 'home';
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState<string | null>(null);
@@ -76,8 +88,25 @@ export default function UploadItemScreen() {
       return;
     }
 
-    navigation.navigate('ItemUploaded');
-  }, [navigation, name, category, description, condition, suggestedPrice, photos]);
+    addSubmission({
+      title: name.trim(),
+      imageUrl: '',
+      currentPrice: `$${suggestedPrice.trim()}`,
+      status: 'soon',
+    });
+
+    navigation.navigate('ItemUploaded', { returnTo });
+  }, [
+    navigation,
+    name,
+    category,
+    description,
+    condition,
+    suggestedPrice,
+    photos,
+    addSubmission,
+    returnTo,
+  ]);
 
   const footer = useMemo(
     () => <PrimaryButton label="Confirmar" onPress={handleConfirm} />,

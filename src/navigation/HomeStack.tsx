@@ -1,7 +1,7 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { HomeStackParamList } from '../types';
-import { HomeScreen } from '../screens/home';
+import { HomeScreen, LotDetailScreen } from '../screens/home';
 import { LoginWallScreen } from '../screens/auction';
 import { ChatListScreen, ChatDetailScreen } from '../screens/chat';
 import { UploadItemScreen, ItemUploadedScreen } from '../screens/consignment';
@@ -17,6 +17,7 @@ export default function HomeStack() {
       <Stack.Screen name="ChatList" component={ChatListScreen} />
       <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
       <Stack.Screen name="LoginWall" component={LoginWallScreen} />
+      <Stack.Screen name="LotDetail" component={LotDetailScreen} />
     </Stack.Navigator>
   );
 }

@@ -34,9 +34,23 @@ export default function HomeScreen() {
 
   const showPrice = isAuthenticated;
 
+  const requireAuth = (action: () => void) => {
+    if (isAuthenticated) {
+      action();
+      return;
+    }
+    navigation.navigate('LoginWall');
+  };
+
+  const openLot = (lotId: string) => {
+    requireAuth(() => navigation.navigate('LotDetail', { lotId }));
+  };
+
   const openAuction = (itemId: string) => {
-    navigation.getParent()?.getParent()?.navigate('AuctionDetail', {
-      auctionId: itemId,
+    requireAuth(() => {
+      navigation.getParent()?.getParent()?.navigate('AuctionDetail', {
+        auctionId: itemId,
+      });
     });
   };
 
@@ -48,7 +62,7 @@ export default function HomeScreen() {
         onChatPress={() => navigation.navigate('ChatList')}
       />
 
-      <ConsignPromoBanner onPress={() => navigation.navigate('UploadItem')} />
+      <ConsignPromoBanner onPress={() => navigation.navigate('UploadItem', { returnTo: 'home' })} />
 
       <ScrollView
         style={styles.scroll}
@@ -60,6 +74,7 @@ export default function HomeScreen() {
             key={category.id}
             category={category}
             showPrice={showPrice}
+            onLotPress={openLot}
             onItemPress={openAuction}
           />
         ))}

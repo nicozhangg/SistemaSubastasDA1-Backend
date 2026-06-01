@@ -10,7 +10,11 @@ export type ActivityBadgeType =
   | 'lost'
   | 'soon'
   | 'finished'
-  | 'canceled';
+  | 'canceled'
+  | 'pending'
+  | 'approved_pending_lot'
+  | 'published'
+  | 'rejected';
 
 interface Props {
   title: string;
@@ -19,6 +23,7 @@ interface Props {
   primaryPrice: string;
   secondaryPrice?: string;
   badgeType: ActivityBadgeType;
+  statusNote?: string;
   onPress?: () => void;
 }
 
@@ -29,6 +34,7 @@ export default function ActivityItemCard({
   primaryPrice,
   secondaryPrice,
   badgeType,
+  statusNote,
   onPress,
 }: Props) {
   const badgeConfig = getBadgeConfig(badgeType);
@@ -80,6 +86,17 @@ export default function ActivityItemCard({
             {badgeConfig.text}
           </Text>
         </View>
+        {statusNote ? (
+          <Text
+            style={[
+              styles.statusNote,
+              badgeType === 'rejected' ? styles.statusNoteError : styles.statusNoteInfo,
+            ]}
+            numberOfLines={3}
+          >
+            {statusNote}
+          </Text>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -135,6 +152,34 @@ function getBadgeConfig(type: ActivityBadgeType) {
         bg: Colors.error,
         color: Colors.white,
         icon: 'ban-outline' as const,
+      };
+    case 'pending':
+      return {
+        text: 'Pendiente',
+        bg: Colors.warning,
+        color: Colors.white,
+        icon: 'time-outline' as const,
+      };
+    case 'approved_pending_lot':
+      return {
+        text: 'Aprobada',
+        bg: '#5B8DEF',
+        color: Colors.white,
+        icon: 'checkmark-outline' as const,
+      };
+    case 'published':
+      return {
+        text: 'Publicado',
+        bg: Colors.success,
+        color: Colors.white,
+        icon: 'checkmark-circle-outline' as const,
+      };
+    case 'rejected':
+      return {
+        text: 'Rechazado',
+        bg: Colors.error,
+        color: Colors.white,
+        icon: 'close-circle-outline' as const,
       };
     default:
       return { text: '', bg: Colors.border, color: Colors.black, icon: undefined };
@@ -239,5 +284,17 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bodyBold,
     fontSize: 9,
     flexShrink: 1,
+  },
+  statusNote: {
+    fontFamily: Fonts.body,
+    fontSize: 9,
+    marginTop: 6,
+    lineHeight: 13,
+  },
+  statusNoteError: {
+    color: Colors.error,
+  },
+  statusNoteInfo: {
+    color: Colors.textSecondary,
   },
 });

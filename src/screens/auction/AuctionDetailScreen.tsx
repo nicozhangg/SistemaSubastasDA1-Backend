@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -68,17 +69,30 @@ export default function AuctionDetailScreen() {
     return Number.isFinite(parsed) ? parsed : 0;
   }, [customBidValue]);
 
+  const minBidAmount = auction.lastBid;
+  const isCustomBidValid = effectiveCustomAmount > minBidAmount;
+
   const handlePlaceBid = () => {
     setPendingAmount(selectedAmount);
     setConfirmVisible(true);
   };
 
+  const handleOpenCustomBid = () => {
+    setCustomBidMode(true);
+    setCustomBidValue(String(minBidAmount + 1));
+  };
+
+  const handleCustomBidChange = (value: string) => {
+    setCustomBidValue(value.replace(/\D/g, ''));
+  };
+
   const handleConfirmCustomBid = () => {
-    if (effectiveCustomAmount > auction.lastBid) {
-      setSelectedAmount(effectiveCustomAmount);
-      setCustomBidMode(false);
-      setCustomBidValue('');
+    if (!isCustomBidValid) {
+      return;
     }
+    setSelectedAmount(effectiveCustomAmount);
+    setCustomBidMode(false);
+    setCustomBidValue('');
   };
 
   const handleConfirmBid = () => {
@@ -169,9 +183,11 @@ export default function AuctionDetailScreen() {
             customBidMode={customBidMode}
             customBidValue={customBidValue}
             currency={auction.currency}
+            minBidAmount={minBidAmount}
+            isCustomBidValid={isCustomBidValid}
             onSelectQuickBid={setSelectedAmount}
-            onToggleCustomBid={() => setCustomBidMode(true)}
-            onCustomBidChange={setCustomBidValue}
+            onToggleCustomBid={handleOpenCustomBid}
+            onCustomBidChange={handleCustomBidChange}
             onConfirmCustomBid={handleConfirmCustomBid}
             onCancelCustomBid={() => {
               setCustomBidMode(false);
@@ -196,15 +212,23 @@ export default function AuctionDetailScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
+    minHeight: 0,
     backgroundColor: '#F5EEF0', // Matches the light background of the image header for seamless status bar bleed
   },
   container: {
     flex: 1,
+    minHeight: 0,
     backgroundColor: '#F5EEF0',
     position: 'relative', // Ensures absolute children position correctly
   },
   mainScroll: {
     flex: 1,
+    minHeight: 0,
+    ...Platform.select({
+      web: {
+        overflow: 'scroll',
+      },
+    }),
   },
   scrollContent: {
     paddingBottom: 24,
