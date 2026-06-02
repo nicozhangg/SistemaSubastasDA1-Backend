@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Test WebSocket Subastas</title>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+  <style>
+    body { font-family: monospace; max-width: 900px; margin: 20px auto; padding: 0 20px; }
+    .section { border: 1px solid #ccc; padding: 15px; margin: 15px 0; border-radius: 5px; }
+    h2 { margin-top: 0; }
+    input, textarea { width: 100%; box-sizing: border-box; margin: 4px 0 10px; padding: 6px; font-family: monospace; }
+    button { padding: 8px 16px; margin: 4px; cursor: pointer; }
+    #log { background: #1e1e1e; color: #d4d4d4; padding: 15px; height: 350px; overflow-y: auto; border-radius: 5px; white-space: pre-wrap; font-size: 13px; }
+    .ok { color: #4ec9b0; }
+    .err { color: #f44747; }
+    .msg { color: #dcdcaa; }
+    .info { color: #9cdcfe; }
+    label { font-weight: bold; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<h1>Test WebSocket — Sistema de Subastas</h1>
+
+<!-- PASO 1: Login -->
+<div class="section">
+  <h2>Paso 1: Login (obtener JWT)</h2>
+  <label>Email</label>
+  <input id="email" value="postor1@test.com" />
+  <label>Password</label>
+  <input id="password" type="password" value="password123" />
+  <button onclick="login()">Login</button>
+  <br>
+  <label>JWT obtenido:</label>
+  <textarea id="jwt" rows="3" placeholder="Aparece acá después del login"></textarea>
+</div>
+
+<!-- PASO 2: Conectar a subasta -->
+<div class="section">
+  <h2>Paso 2: Conectar a subasta (REST)</h2>
+  <label>Subasta ID</label>
+  <input id="subastaId" value="1" />
+  <label>Medio de pago ID</label>
+  <input id="medioPagoId" value="1" />
+  <button onclick="conectarRest()">Conectar (REST POST /subastas/{id}/conectar)</button>
+</div>
+
+<!-- PASO 3: WebSocket -->
+<div class="section">
+  <h2>Paso 3: Conectar WebSocket</h2>
+  <button onclick="conectarWs()">Conectar WebSocket</button>
+  <button onclick="desconectarWs()">Desconectar</button>
+</div>
+
+<!-- PASO 4: Pujar -->
+<div class="section">
+  <h2>Paso 4: Enviar puja</h2>
+  <label>Item ID</label>
+  <input id="itemId" value="1" />
+  <label>Monto</label>
+  <input id="monto" value="1000" />
+  <button onclick="pujar()">Pujar</button>
+</div>
+
+<!-- Log -->
+<div class="section">
+  <h2>Log</h2>
+  <button onclick="document.getElementById('log').innerHTML=''">Limpiar</button>
+  <div id="log"></div>
+</div>
+
+<script>
+  const BASE_URL = 'http://localhost:8080';
+  let stompClient = null;
+
+  function log(msg, cls = '') {
+    const d = document.getElementById('log');
+    const ts = new Date().toLocaleTimeString();
+    d.innerHTML += `<span class="${cls}">[${ts}] ${msg}</span>\n`;
+    d.scrollTop = d.scrollHeight;
+  }
+
+  async function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    log(`POST /api/v1/auth/login → ${email}`, 'info');
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const text = await res.text();
+      log(`Status: ${res.status} | Body: ${text || '(vacío)'}`, res.ok ? 'ok' : 'err');
+      if (res.ok) {
+        const data = JSON.parse(text);
+        document.getElementById('jwt').value = data.token;
+        log('JWT guardado.', 'ok');
+      }
+    } catch (e) {
+      log(`Error de red: ${e.message}`, 'err');
+    }
+  }
+
+  async function conectarRest() {
+    const subastaId = document.getElementById('subastaId').value;
+    const medioPagoId = document.getElementById('medioPagoId').value;
+    const jwt = document.getElementById('jwt').value.trim();
+    log(`POST /subastas/${subastaId}/conectar`, 'info');
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/subastas/${subastaId}/conectar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwt}`
+        },
+        body: JSON.stringify({ medioPagoId: parseInt(medioPagoId) })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        log(`Conectado a subasta OK: ${JSON.stringify(data)}`, 'ok');
+      } else {
+        log(`Error al conectar: ${JSON.stringify(data)}`, 'err');
+      }
+    } catch (e) {
+      log(`Error de red: ${e.message}`, 'err');
+    }
+  }
+
+  function conectarWs() {
+    const jwt = document.getElementById('jwt').value.trim();
+    const subastaId = document.getElementById('subastaId').value;
+
+    if (!jwt) {
+      log('Primero hacé login para obtener el JWT', 'err');
+      return;
+    }
+
+    log('Conectando WebSocket...', 'info');
+
+    const socket = new SockJS(`${BASE_URL}/ws`);
+    stompClient = new StompJs.Client({
+      webSocketFactory: () => socket,
+      connectHeaders: {
+        Authorization: `Bearer ${jwt}`
+      },
+      debug: (str) => log(`[STOMP DEBUG] ${str}`, 'info'),
+      onConnect: (frame) => {
+        log('WebSocket CONECTADO', 'ok');
+
+        // Suscribirse al topic de la subasta
+        stompClient.subscribe(`/topic/subastas/${subastaId}`, (msg) => {
+          log(`[/topic/subastas/${subastaId}] ${msg.body}`, 'msg');
+        });
+        log(`Suscripto a /topic/subastas/${subastaId}`, 'ok');
+
+        // Suscribirse a confirmaciones personales
+        stompClient.subscribe('/user/queue/pujas', (msg) => {
+          log(`[/user/queue/pujas] ${msg.body}`, 'msg');
+        });
+        log('Suscripto a /user/queue/pujas', 'ok');
+      },
+      onStompError: (frame) => {
+        log(`STOMP error: ${frame.headers['message']} — ${frame.body}`, 'err');
+      },
+      onDisconnect: () => {
+        log('WebSocket desconectado', 'err');
+      }
+    });
+
+    stompClient.activate();
+  }
+
+  function desconectarWs() {
+    if (stompClient) {
+      stompClient.deactivate();
+      log('Desconectado manualmente', 'info');
+    }
+  }
+
+  function pujar() {
+    if (!stompClient || !stompClient.connected) {
+      log('WebSocket no conectado', 'err');
+      return;
+    }
+    const subastaId = document.getElementById('subastaId').value;
+    const itemId = document.getElementById('itemId').value;
+    const monto = document.getElementById('monto').value;
+    const medioPagoId = document.getElementById('medioPagoId').value;
+
+    const payload = {
+      itemId: parseInt(itemId),
+      monto: parseFloat(monto),
+      medioPagoId: parseInt(medioPagoId)
+    };
+
+    log(`Enviando puja: ${JSON.stringify(payload)}`, 'info');
+    stompClient.publish({
+      destination: `/app/subastas/${subastaId}/pujar`,
+      body: JSON.stringify(payload)
+    });
+  }
+</script>
+</body>
+</html>

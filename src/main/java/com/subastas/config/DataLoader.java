@@ -121,7 +121,7 @@ public class DataLoader implements CommandLineRunner {
                 .titulo("Subasta de Arte Argentino - Lote 01")
                 .descripcion("Colección de obras de artistas contemporáneos argentinos")
                 .fechaInicio(LocalDateTime.now().minusHours(1))
-                .fechaFin(LocalDateTime.now().plusHours(2))
+                .fechaFin(LocalDateTime.now().plusDays(7))
                 .categoria(Categoria.COMUN)
                 .moneda(Moneda.ARS)
                 .estado(EstadoSubasta.ABIERTA)
